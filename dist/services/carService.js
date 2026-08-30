@@ -81,6 +81,10 @@ function searchListings(filter) {
         clauses.push('c.brand LIKE @brand ESCAPE \'\\\'');
         params.brand = `%${filter.brand.replace(/[\\%_]/g, '\\$&')}%`;
     }
+    if (filter.model) {
+        clauses.push('c.model LIKE @model ESCAPE \'\\\'');
+        params.model = `%${filter.model.replace(/[\\%_]/g, '\\$&')}%`;
+    }
     if (filter.minPrice !== undefined) {
         clauses.push('c.price_per_day >= @minPrice');
         params.minPrice = filter.minPrice;

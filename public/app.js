@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '5';
+  const APP_VERSION = '6';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -546,15 +546,10 @@
       </div>`;
   }
 
-  const searchFilterIds = ['searchCity', 'searchCarClass', 'searchTransmission', 'searchBrand', 'searchMinPrice', 'searchMaxPrice', 'searchDateFrom', 'searchDateTo', 'searchSort', 'searchHasDeposit'];
+  const searchFilterIds = ['searchCity', 'searchCarClass', 'searchTransmission', 'searchBrand', 'searchModel', 'searchMinPrice', 'searchMaxPrice', 'searchDateFrom', 'searchDateTo', 'searchSort', 'searchHasDeposit'];
   searchFilterIds.forEach((id) => {
     const el = document.getElementById(id);
     el.addEventListener('change', loadCars);
-  });
-  document.getElementById('clearDatesBtn').addEventListener('click', () => {
-    document.getElementById('searchDateFrom').value = '';
-    document.getElementById('searchDateTo').value = '';
-    loadCars();
   });
 
   async function loadCars() {
@@ -572,6 +567,8 @@
       if (transmission) params.set('transmission', transmission);
       const brand = document.getElementById('searchBrand').value.trim();
       if (brand) params.set('brand', brand);
+      const model = document.getElementById('searchModel').value.trim();
+      if (model) params.set('model', model);
       const minPrice = document.getElementById('searchMinPrice').value;
       if (minPrice) params.set('minPrice', minPrice);
       const maxPrice = document.getElementById('searchMaxPrice').value;

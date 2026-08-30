@@ -12,7 +12,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta name="description" content="АвтоДай.рф — сервис аренды автомобилей от частных лиц по всей России. Найдите авто рядом или сдайте свой." />
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
   <!-- Без async/defer намеренно: скрипт должен успеть выполниться и создать
        window.Telegram.WebApp ДО того, как app.js (defer) начнёт проверять
        платформу — иначе относительный порядок async- и defer-скриптов не
@@ -89,13 +89,15 @@
       </div>
       <div class="search-filters">
         <input type="text" id="searchBrand" placeholder="Марка" maxlength="60" />
+        <input type="text" id="searchModel" placeholder="Модель" maxlength="60" />
+      </div>
+      <div class="search-filters">
         <input type="number" id="searchMinPrice" placeholder="Цена от, ₽" min="0" />
         <input type="number" id="searchMaxPrice" placeholder="Цена до, ₽" min="0" />
       </div>
       <div class="date-filter">
         <input type="date" id="searchDateFrom" title="Дата с" />
         <input type="date" id="searchDateTo" title="Дата по" />
-        <button type="button" class="btn secondary small" id="clearDatesBtn">Все даты</button>
       </div>
       <div class="search-filters">
         <select id="searchSort">
@@ -281,6 +283,6 @@
     <button class="tab-btn" data-tab="admin" id="adminTabBtn" hidden>🛠<span>Админ</span></button>
   </nav>
 
-  <script src="app.js?v=5" defer></script>
+  <script src="app.js?v=6" defer></script>
 </body>
 </html>

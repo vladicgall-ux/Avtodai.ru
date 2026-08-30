@@ -639,7 +639,7 @@ input[type="date"], input[type="datetime-local"] {
   flex-wrap: wrap;
   margin-bottom: 14px;
 }
-.search-filters select, .search-filters input {
+.search-filters select, .search-filters input:not([type="checkbox"]) {
   flex: 1;
   min-width: 120px;
   font-size: 13px;
@@ -660,6 +660,8 @@ input[type="date"], input[type="datetime-local"] {
   align-items: center;
   gap: 8px !important;
   font-size: 14px !important;
+  color: var(--text) !important;
+  font-weight: 600 !important;
 }
 .checkbox-label input[type="checkbox"] {
   width: 18px;

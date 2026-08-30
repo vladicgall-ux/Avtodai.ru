@@ -50,6 +50,7 @@ exports.carsRouter.get('/', (req, res) => {
         carClass: isCarClass(req.query.carClass) ? req.query.carClass : undefined,
         transmission: isTransmission(req.query.transmission) ? req.query.transmission : undefined,
         brand: typeof req.query.brand === 'string' ? req.query.brand.trim().slice(0, 60) : undefined,
+        model: typeof req.query.model === 'string' ? req.query.model.trim().slice(0, 60) : undefined,
         minPrice: Number.isFinite(minPrice) && minPrice > 0 ? minPrice : undefined,
         maxPrice: Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : undefined,
         hasDeposit,
