@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '8';
+  const APP_VERSION = '9';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -276,24 +276,50 @@
     }).join('')}</div>`;
   }
 
-  // ---------- Cities dropdowns ----------
+  // ---------- Cities dropdowns (область → город) ----------
+
+  /**
+   * Наполняет <select> города списком, отфильтрованным по выбранной области.
+   * В поиске область необязательна (пусто = все города страны), в форме
+   * объявления — обязательна: пока область не выбрана, список городов
+   * заблокирован с поясняющей подсказкой, а не просто пуст.
+   */
+  function fillCitySelect(selectEl, region, emptyRegionLabel, requireRegion) {
+    const currentValue = selectEl.value;
+    if (requireRegion && !region) {
+      selectEl.innerHTML = '<option value="" disabled selected>Сначала выберите область</option>';
+      selectEl.disabled = true;
+      return;
+    }
+    selectEl.disabled = false;
+    const list = region ? state.cities.filter((c) => c.region === region) : state.cities;
+    const options = list.map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+    const placeholder = requireRegion
+      ? '<option value="" disabled>Выберите город</option>'
+      : `<option value="">${escapeHtml(emptyRegionLabel)}</option>`;
+    selectEl.innerHTML = placeholder + options;
+    selectEl.value = list.some((c) => c.name === currentValue) ? currentValue : '';
+  }
+
   async function loadCities() {
     try {
       const { cities } = await apiFetch('/cities');
       state.cities = cities;
-      const options = cities
-        .map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}${c.region ? ' — ' + escapeHtml(c.region) : ''}</option>`)
-        .join('');
+      const regions = [...new Set(cities.map((c) => c.region).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
+      const regionOptions = regions.map((r) => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
 
-      const searchSelect = document.getElementById('searchCity');
-      const currentSearchValue = searchSelect.value;
-      searchSelect.innerHTML = '<option value="">Город: любой</option>' + options;
-      searchSelect.value = currentSearchValue;
+      const searchRegionSelect = document.getElementById('searchRegion');
+      const currentSearchRegion = searchRegionSelect.value;
+      searchRegionSelect.innerHTML = '<option value="">Область: любая</option>' + regionOptions;
+      searchRegionSelect.value = regions.includes(currentSearchRegion) ? currentSearchRegion : '';
+      fillCitySelect(document.getElementById('searchCity'), searchRegionSelect.value, 'Город: любой', false);
 
-      const carCitySelect = document.getElementById('carCity');
-      const currentCarValue = carCitySelect.value;
-      carCitySelect.innerHTML = '<option value="" disabled' + (currentCarValue ? '' : ' selected') + '>Выберите город</option>' + options;
-      carCitySelect.value = currentCarValue;
+      const carRegionSelect = document.getElementById('carRegion');
+      const currentCarRegion = carRegionSelect.value;
+      carRegionSelect.innerHTML =
+        '<option value="" disabled' + (currentCarRegion ? '' : ' selected') + '>Выберите область</option>' + regionOptions;
+      carRegionSelect.value = regions.includes(currentCarRegion) ? currentCarRegion : '';
+      fillCitySelect(document.getElementById('carCity'), carRegionSelect.value, '', true);
     } catch (err) {
       // Список городов не загрузился (например, разрыв сети при старте) —
       // не критично для загрузки самого приложения, но фильтр/форма
@@ -301,6 +327,14 @@
       // происходит при каждом заходе на вкладки "Поиск"/"Сдать авто".
     }
   }
+
+  document.getElementById('searchRegion').addEventListener('change', (e) => {
+    fillCitySelect(document.getElementById('searchCity'), e.target.value, 'Город: любой', false);
+    loadCars();
+  });
+  document.getElementById('carRegion').addEventListener('change', (e) => {
+    fillCitySelect(document.getElementById('carCity'), e.target.value, '', true);
+  });
 
   function isKnownCityName(name) {
     return state.cities.some((c) => c.name === name);

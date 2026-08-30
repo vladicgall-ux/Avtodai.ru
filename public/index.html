@@ -12,7 +12,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta name="description" content="АвтоДай.рф — сервис аренды автомобилей от частных лиц по всей России. Найдите авто рядом или сдайте свой." />
-  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="styles.css?v=9" />
   <!-- Без async/defer намеренно: скрипт должен успеть выполниться и создать
        window.Telegram.WebApp ДО того, как app.js (defer) начнёт проверять
        платформу — иначе относительный порядок async- и defer-скриптов не
@@ -69,9 +69,14 @@
     <!-- ПОИСК -->
     <section id="tab-search" class="tab">
       <div class="search-filters">
+        <select id="searchRegion">
+          <option value="">Область: любая</option>
+        </select>
         <select id="searchCity">
           <option value="">Город: любой</option>
         </select>
+      </div>
+      <div class="search-filters">
         <select id="searchCarClass">
           <option value="">Класс: любой</option>
           <option value="economy">Эконом</option>
@@ -140,9 +145,14 @@
         <label>Госномер
           <input type="text" id="carPlate" required maxlength="20" placeholder="А123ВС174" />
         </label>
+        <label>Область
+          <select id="carRegion" required>
+            <option value="" disabled selected>Выберите область</option>
+          </select>
+        </label>
         <label>Город
           <select id="carCity" required>
-            <option value="" disabled selected>Выберите город</option>
+            <option value="" disabled selected>Сначала выберите область</option>
           </select>
         </label>
         <label>Класс автомобиля
@@ -295,6 +305,6 @@
     <button class="tab-btn" data-tab="admin" id="adminTabBtn" hidden>🛠<span>Админ</span></button>
   </nav>
 
-  <script src="app.js?v=8" defer></script>
+  <script src="app.js?v=9" defer></script>
 </body>
 </html>
