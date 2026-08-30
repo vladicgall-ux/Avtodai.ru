@@ -93,7 +93,7 @@
         </select>
       </div>
       <div class="search-filters">
-        <input type="text" id="searchBrand" placeholder="Марка" maxlength="60" />
+        <input type="text" id="searchBrand" list="carBrandList" placeholder="Марка" maxlength="60" />
         <input type="text" id="searchModel" placeholder="Модель" maxlength="60" />
       </div>
       <div class="search-filters">
@@ -131,7 +131,7 @@
       <form id="listingForm" class="card" hidden>
         <h3>Новое объявление</h3>
         <label>Марка
-          <input type="text" id="carBrand" placeholder="Например, Kia" required maxlength="60" />
+          <input type="text" id="carBrand" list="carBrandList" placeholder="Например, Kia" required maxlength="60" />
         </label>
         <label>Модель
           <input type="text" id="carModel" placeholder="Rio" required maxlength="60" />
@@ -297,6 +297,87 @@
     </section>
   </main>
 
+  <datalist id="carBrandList">
+    <option value="Lada"></option>
+    <option value="Toyota"></option>
+    <option value="Hyundai"></option>
+    <option value="Kia"></option>
+    <option value="Volkswagen"></option>
+    <option value="Renault"></option>
+    <option value="Nissan"></option>
+    <option value="Skoda"></option>
+    <option value="BMW"></option>
+    <option value="Mercedes-Benz"></option>
+    <option value="Audi"></option>
+    <option value="Ford"></option>
+    <option value="Chevrolet"></option>
+    <option value="Mazda"></option>
+    <option value="Mitsubishi"></option>
+    <option value="Honda"></option>
+    <option value="Suzuki"></option>
+    <option value="Subaru"></option>
+    <option value="Peugeot"></option>
+    <option value="Citroen"></option>
+    <option value="Opel"></option>
+    <option value="Fiat"></option>
+    <option value="Volvo"></option>
+    <option value="Lexus"></option>
+    <option value="Infiniti"></option>
+    <option value="Land Rover"></option>
+    <option value="Jeep"></option>
+    <option value="Jaguar"></option>
+    <option value="Porsche"></option>
+    <option value="Mini"></option>
+    <option value="Smart"></option>
+    <option value="Chery"></option>
+    <option value="Geely"></option>
+    <option value="Haval"></option>
+    <option value="Changan"></option>
+    <option value="GAC"></option>
+    <option value="Exeed"></option>
+    <option value="Omoda"></option>
+    <option value="Jetour"></option>
+    <option value="Tank"></option>
+    <option value="FAW"></option>
+    <option value="Lifan"></option>
+    <option value="Great Wall"></option>
+    <option value="JAC"></option>
+    <option value="BAIC"></option>
+    <option value="Dongfeng"></option>
+    <option value="ГАЗ"></option>
+    <option value="УАЗ"></option>
+    <option value="Москвич"></option>
+    <option value="ЗАЗ"></option>
+    <option value="Datsun"></option>
+    <option value="SsangYong"></option>
+    <option value="Isuzu"></option>
+    <option value="Daewoo"></option>
+    <option value="SEAT"></option>
+    <option value="Alfa Romeo"></option>
+    <option value="Cadillac"></option>
+    <option value="Chrysler"></option>
+    <option value="Dodge"></option>
+    <option value="Genesis"></option>
+    <option value="Acura"></option>
+    <option value="Ravon"></option>
+    <option value="Zeekr"></option>
+    <option value="Voyah"></option>
+    <option value="Livan"></option>
+    <option value="Belgee"></option>
+    <option value="Solaris"></option>
+    <option value="Kaiyi"></option>
+    <option value="Soueast"></option>
+    <option value="Hongqi"></option>
+    <option value="MG"></option>
+    <option value="BYD"></option>
+    <option value="NIO"></option>
+    <option value="XPeng"></option>
+    <option value="Skywell"></option>
+    <option value="Forthing"></option>
+    <option value="Wey"></option>
+    <option value="ORA"></option>
+  </datalist>
+
   <nav class="tabbar" id="tabbar" hidden>
     <button class="tab-btn active" data-tab="search">🔎<span>Поиск</span></button>
     <button class="tab-btn" data-tab="lend">🔑<span>Сдать авто</span></button>
@@ -305,6 +386,6 @@
     <button class="tab-btn" data-tab="admin" id="adminTabBtn" hidden>🛠<span>Админ</span></button>
   </nav>
 
-  <script src="app.js?v=12" defer></script>
+  <script src="app.js?v=13" defer></script>
 </body>
 </html>
