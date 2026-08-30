@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '25';
+  const APP_VERSION = '26';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -427,7 +427,11 @@
     'Aston Martin': ['DB11', 'Vantage', 'DBX'],
     'Aurus': ['Senat', 'Komendant'],
   };
-  const CAR_MODELS_ALL = Object.values(CAR_MODELS_BY_BRAND).flat();
+  // Отсортировано и без дублей (одно и то же короткое имя модели — "3", "6" —
+  // встречается у разных марок, например Mazda и BMW) — до выбора марки
+  // подсказки собираются из всех брендов сразу, и несортированный список
+  // вперемешку выглядел хаотично ("всё в кашу").
+  const CAR_MODELS_ALL = [...new Set(Object.values(CAR_MODELS_BY_BRAND).flat())].sort((a, b) => a.localeCompare(b, 'ru'));
 
   function modelsForBrand(brand) {
     const trimmed = brand.trim();
@@ -456,7 +460,11 @@
     function render() {
       const options = typeof getOptions === 'function' ? getOptions() : getOptions;
       const q = inputEl.value.trim().toLowerCase();
-      const matches = (q ? options.filter((o) => o.toLowerCase().includes(q)) : options).slice(0, 8);
+      // 8 обрезало список моделей уже выбранной марки на середине (у Toyota,
+      // например, их 13) — пользователь видел только первую половину и не
+      // мог долистать, из-за чего казалось, что вариантов мало. 30 с запасом
+      // покрывает любой список марки целиком, сам блок при этом прокручивается.
+      const matches = (q ? options.filter((o) => o.toLowerCase().includes(q)) : options).slice(0, 30);
       if (!matches.length) {
         box.hidden = true;
         return;

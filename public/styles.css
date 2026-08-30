@@ -793,6 +793,23 @@ input[type="date"], input[type="datetime-local"] {
 }
 .autocomplete-wrap input {
   width: 100%;
+  /* Место под стрелку ниже — без этого длинное значение перекрывало бы её. */
+  padding-right: 30px;
+}
+/* Та же визуальная подсказка "тут список", что и у обычного <select> —
+   без неё поля "Марка"/"Модель" выглядели как простой текст без намёка
+   на то, что при тапе появляются варианты. */
+.autocomplete-wrap::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--hint);
+  border-bottom: 2px solid var(--hint);
+  transform: translateY(-65%) rotate(45deg);
+  pointer-events: none;
 }
 .autocomplete-list {
   position: absolute;
@@ -803,7 +820,7 @@ input[type="date"], input[type="datetime-local"] {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 10px;
-  max-height: 190px;
+  max-height: 260px;
   overflow-y: auto;
   z-index: 50;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
