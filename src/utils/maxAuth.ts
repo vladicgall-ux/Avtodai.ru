@@ -19,10 +19,16 @@ export function validateMaxInitData(initData: string): ValidatedMaxInitData | nu
   // Логируем только короткую причину отказа, без самих данных — initData
   // содержит персональные данные пользователя MAX (id, имя, username), а
   // при неверной подписи ещё и посчитанный HMAC незачем писать в лог.
+  //
+  // Пустой заголовок НЕ логируем: requireAuth (см. server/middleware/auth.ts)
+  // пробует Telegram, затем MAX, затем веб-сессию по кукам — значит этот
+  // путь проходит буквально каждый запрос из Telegram Mini App и из
+  // браузерной версии (там X-Max-Init-Data вообще не отправляется). Это
+  // штатный, самый частый случай, а не ошибка — логировать его означало бы
+  // заливать логи шумом на каждый запрос вместо реальных проблем.
   const log = (reason: string) => console.log(`[maxAuth] отклонено: ${reason}`);
 
   if (!initData) {
-    log('X-Max-Init-Data пустой или отсутствует');
     return null;
   }
   if (!config.maxBotToken) {

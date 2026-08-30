@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '15';
+  const APP_VERSION = '16';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -229,25 +229,56 @@
     'Skywell', 'Forthing', 'Wey', 'ORA',
   ];
 
-  const CAR_MODELS = [
-    'Vesta', 'Granta', 'Largus', 'Niva', 'XRAY', 'Camry', 'Corolla', 'RAV4', 'Land Cruiser',
-    'Land Cruiser Prado', 'Hilux', 'C-HR', 'Rio', 'Optima', 'Sportage', 'Cerato', 'Sorento', 'Soul', 'K5',
-    'Solaris', 'Creta', 'Santa Fe', 'Tucson', 'Elantra', 'Accent', 'Polo', 'Tiguan', 'Passat', 'Jetta',
-    'Golf', 'Touareg', 'Duster', 'Logan', 'Sandero', 'Arkana', 'Kaptur', 'Qashqai', 'X-Trail', 'Almera',
-    'Terrano', 'Murano', 'Focus', 'Fiesta', 'Kuga', 'Explorer', 'Octavia', 'Rapid', 'Kodiaq', 'Karoq',
-    'Outlander', 'Lancer', 'ASX', 'Pajero Sport', 'CX-5', 'CX-3', '3', '6', 'CR-V', 'Civic', 'Accord',
-    'Pilot', 'Forester', 'Outback', 'Impreza', 'XV', 'X5', 'X3', '3 серии', '5 серии', 'E-Class', 'C-Class',
-    'GLC', 'GLE', 'A4', 'A6', 'Q5', 'Q7', 'Tiggo 7', 'Tiggo 8', 'Tiggo 4', 'Jolion', 'F7', 'H6', 'M6',
-    'Coolray', 'Atlas',
-  ];
+  // Модели сгруппированы по марке — иначе автокомплит с плоским списком
+  // подсказывал бы "Vesta" при выбранной марке "Toyota". Марка не из этого
+  // списка (например, введена вручную) — тогда подсказки собираются из
+  // моделей всех марок сразу, чтобы не остаться совсем без вариантов.
+  const CAR_MODELS_BY_BRAND = {
+    'Lada': ['Vesta', 'Granta', 'Largus', 'Niva', 'XRAY', 'Kalina', 'Priora'],
+    'Toyota': ['Camry', 'Corolla', 'RAV4', 'Land Cruiser', 'Land Cruiser Prado', 'Hilux', 'C-HR', 'Highlander'],
+    'Kia': ['Rio', 'Optima', 'K5', 'Sportage', 'Cerato', 'Sorento', 'Soul', 'Seltos'],
+    'Hyundai': ['Solaris', 'Creta', 'Santa Fe', 'Tucson', 'Elantra', 'Accent', 'Sonata'],
+    'Volkswagen': ['Polo', 'Tiguan', 'Passat', 'Jetta', 'Golf', 'Touareg', 'Teramont'],
+    'Renault': ['Duster', 'Logan', 'Sandero', 'Arkana', 'Kaptur', 'Fluence', 'Megane'],
+    'Nissan': ['Qashqai', 'X-Trail', 'Almera', 'Terrano', 'Murano', 'Juke', 'Teana'],
+    'Skoda': ['Octavia', 'Rapid', 'Kodiaq', 'Karoq', 'Superb', 'Yeti'],
+    'Mitsubishi': ['Outlander', 'Lancer', 'ASX', 'Pajero Sport', 'Pajero', 'L200'],
+    'Mazda': ['CX-5', 'CX-3', 'CX-9', '3', '6', 'CX-30'],
+    'Ford': ['Focus', 'Fiesta', 'Kuga', 'Explorer', 'Mondeo', 'EcoSport'],
+    'Honda': ['CR-V', 'Civic', 'Accord', 'Pilot', 'HR-V'],
+    'Subaru': ['Forester', 'Outback', 'Impreza', 'XV', 'Legacy'],
+    'BMW': ['X5', 'X3', 'X1', '3 серии', '5 серии', '7 серии', 'X6'],
+    'Mercedes-Benz': ['E-Class', 'C-Class', 'GLC', 'GLE', 'S-Class', 'GLA', 'Vito'],
+    'Audi': ['A4', 'A6', 'Q5', 'Q7', 'A3', 'Q3'],
+    'Lexus': ['RX', 'NX', 'ES', 'LX', 'GX'],
+    'Volvo': ['XC60', 'XC90', 'S60', 'XC40'],
+    'Chery': ['Tiggo 7', 'Tiggo 8', 'Tiggo 4', 'Arrizo 5'],
+    'Haval': ['Jolion', 'F7', 'M6', 'Dargo', 'H6'],
+    'Geely': ['Coolray', 'Atlas', 'Emgrand', 'Monjaro'],
+    'Changan': ['CS35', 'CS55', 'Uni-K', 'Alsvin'],
+    'Omoda': ['C5', 'S5'],
+    'Jetour': ['X70', 'Dashing', 'X90'],
+    'Exeed': ['TXL', 'LX', 'VX'],
+    'ГАЗ': ['Газель', 'Соболь', 'Волга'],
+    'УАЗ': ['Патриот', 'Хантер', 'Буханка'],
+  };
+  const CAR_MODELS_ALL = Object.values(CAR_MODELS_BY_BRAND).flat();
+
+  function modelsForBrand(brand) {
+    const trimmed = brand.trim();
+    return CAR_MODELS_BY_BRAND[trimmed] || CAR_MODELS_ALL;
+  }
 
   /**
    * Свой автокомплит вместо нативного <datalist>: Mobile Safari (а значит и
    * WKWebView, в котором открывается Telegram/MAX Mini App на iPhone) не
    * показывает всплывающие подсказки datalist вообще — там, где приложение
    * чаще всего и открывают, подсказки были бы попросту не видны.
+   *
+   * getOptions может быть как готовым массивом, так и функцией — модели
+   * зависят от уже введённой марки и пересчитываются на каждый показ списка.
    */
-  function attachAutocomplete(inputEl, options) {
+  function attachAutocomplete(inputEl, getOptions) {
     const wrap = document.createElement('div');
     wrap.className = 'autocomplete-wrap';
     inputEl.parentNode.insertBefore(wrap, inputEl);
@@ -258,6 +289,7 @@
     wrap.appendChild(box);
 
     function render() {
+      const options = typeof getOptions === 'function' ? getOptions() : getOptions;
       const q = inputEl.value.trim().toLowerCase();
       const matches = (q ? options.filter((o) => o.toLowerCase().includes(q)) : options).slice(0, 8);
       if (!matches.length) {
@@ -414,9 +446,9 @@
   }
 
   attachAutocomplete(document.getElementById('searchBrand'), CAR_BRANDS);
-  attachAutocomplete(document.getElementById('searchModel'), CAR_MODELS);
+  attachAutocomplete(document.getElementById('searchModel'), () => modelsForBrand(document.getElementById('searchBrand').value));
   attachAutocomplete(document.getElementById('carBrand'), CAR_BRANDS);
-  attachAutocomplete(document.getElementById('carModel'), CAR_MODELS);
+  attachAutocomplete(document.getElementById('carModel'), () => modelsForBrand(document.getElementById('carBrand').value));
   attachDatePlaceholder('searchDateFromField');
   attachDatePlaceholder('searchDateToField');
 
