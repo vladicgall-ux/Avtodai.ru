@@ -89,6 +89,7 @@ export function createApp() {
   app.get('/api/config', (_req, res) => {
     res.json({
       botUsername: getBotUsername(),
+      maxBotLink: config.maxBotLink ?? null,
       appVersion: config.appVersion,
       serviceName: config.serviceName,
       serviceDomain: config.serviceDomain,

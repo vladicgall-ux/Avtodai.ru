@@ -80,6 +80,7 @@ function createApp() {
     app.get('/api/config', (_req, res) => {
         res.json({
             botUsername: (0, notifier_1.getBotUsername)(),
+            maxBotLink: config_1.config.maxBotLink ?? null,
             appVersion: config_1.config.appVersion,
             serviceName: config_1.config.serviceName,
             serviceDomain: config_1.config.serviceDomain,

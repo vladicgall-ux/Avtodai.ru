@@ -15,6 +15,7 @@ function required(name, fallback) {
 }
 const webappUrlRaw = (process.env.WEBAPP_URL ?? '').trim();
 const maxBotTokenRaw = (process.env.MAX_BOT_TOKEN ?? '').trim();
+const maxBotLinkRaw = (process.env.MAX_BOT_LINK ?? '').trim();
 const publicOriginRaw = (process.env.PUBLIC_ORIGIN ?? '').trim();
 exports.config = {
     botToken: required('BOT_TOKEN'),
@@ -32,6 +33,13 @@ exports.config = {
     // Бот MAX опционален и полностью отключён, пока переменная не задана —
     // не должен мешать уже работающему боту Telegram, если что-то пойдёт не так.
     maxBotToken: maxBotTokenRaw || undefined,
+    // Прямая ссылка на чат с ботом в MAX (например, https://max.ru/<username>) —
+    // отдаётся фронтенду через /api/config для кнопки «Открыть чат в MAX» на
+    // экране входа и в поддержке. Опционально, т.к. в отличие от Telegram
+    // (где ссылка t.me/<username> строится по известному username бота) точный
+    // публичный формат ссылки на бота MAX задаётся вручную после регистрации
+    // бота в business.max.ru.
+    maxBotLink: maxBotLinkRaw.startsWith('https://') ? maxBotLinkRaw : undefined,
     port: Number(process.env.PORT ?? 3000),
     adminIds: (process.env.ADMIN_IDS ?? '')
         .split(',')

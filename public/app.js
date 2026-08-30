@@ -204,6 +204,7 @@
     cities: [],
     activeTab: 'search',
     botUsername: null,
+    maxBotLink: null,
     bookingsSub: 'renter',
     adminSub: 'users',
   };
@@ -248,8 +249,26 @@
     return `<span class="rating-line"><span class="stars">${stars}</span> ${Number(avg).toFixed(1)} (${count})</span>`;
   }
 
+  // Плейсхолдер для объявлений без фото — карточка не выглядит "пустой"/сломанной,
+  // пока владелец не загрузил снимки. Встроенный SVG, без сетевого запроса.
+  const NO_PHOTO_SVG =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">
+        <rect width="300" height="200" fill="#182620"/>
+        <g fill="none" stroke="#3ea86a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6">
+          <path d="M55 130 L75 90 Q85 78 100 78 L200 78 Q215 78 225 92 L245 130"/>
+          <rect x="45" y="130" width="210" height="34" rx="10"/>
+          <circle cx="95" cy="164" r="16"/>
+          <circle cx="205" cy="164" r="16"/>
+        </g>
+      </svg>`
+    );
+
   function photoCarouselHtml(photos) {
-    if (!photos || !photos.length) return '';
+    if (!photos || !photos.length) {
+      return `<div class="photo-carousel single"><img class="car-photo no-photo" src="${NO_PHOTO_SVG}" alt="Фото пока не загружено" /></div>`;
+    }
     const cls = photos.length === 1 ? 'photo-carousel single' : 'photo-carousel';
     return `<div class="${cls}">${photos.map((p) => {
       const src = `/uploads/${p.replace(/^\/?uploads\//, '')}`;
@@ -444,14 +463,23 @@
       document.getElementById('loginCodeBox').hidden = false;
       document.getElementById('loginCodeStartBtn').hidden = true;
 
-      if (!state.botUsername) {
+      if (!state.botUsername || !state.maxBotLink) {
         try {
           const cfg = await apiFetch('/config');
           state.botUsername = cfg.botUsername;
+          state.maxBotLink = cfg.maxBotLink;
         } catch (e) { /* ignore */ }
       }
-      const link = document.getElementById('loginOpenTelegramLink');
-      if (state.botUsername) link.href = `https://t.me/${state.botUsername}`;
+      const tgLink = document.getElementById('loginOpenTelegramLink');
+      if (state.botUsername) {
+        tgLink.href = `https://t.me/${state.botUsername}`;
+        tgLink.hidden = false;
+      }
+      const maxLink = document.getElementById('loginOpenMaxLink');
+      if (state.maxBotLink) {
+        maxLink.href = state.maxBotLink;
+        maxLink.hidden = false;
+      }
 
       clearInterval(loginPollTimer);
       loginPollTimer = setInterval(async () => {
@@ -1113,16 +1141,22 @@
       `;
       document.getElementById('logoutCard').hidden = platformMode() !== 'web';
 
-      if (!state.botUsername) {
+      if (!state.botUsername || !state.maxBotLink) {
         try {
           const cfg = await apiFetch('/config');
           state.botUsername = cfg.botUsername;
+          state.maxBotLink = cfg.maxBotLink;
         } catch (e) { /* ignore */ }
       }
       const supportLink = document.getElementById('supportTelegramLink');
       if (state.botUsername) {
         supportLink.href = `https://t.me/${state.botUsername}`;
         supportLink.hidden = false;
+      }
+      const supportMaxLink = document.getElementById('supportMaxLink');
+      if (state.maxBotLink) {
+        supportMaxLink.href = state.maxBotLink;
+        supportMaxLink.hidden = false;
       }
     } catch (err) {
       toast(err.message);
@@ -1372,6 +1406,7 @@
     try {
       const cfg = await apiFetch('/config');
       state.botUsername = cfg.botUsername;
+      state.maxBotLink = cfg.maxBotLink;
       const already = sessionStorage.getItem('appVersionReloadFor');
       if (cfg.appVersion && cfg.appVersion !== APP_VERSION && already !== cfg.appVersion) {
         sessionStorage.setItem('appVersionReloadFor', cfg.appVersion);
