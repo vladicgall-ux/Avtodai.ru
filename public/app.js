@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '24';
+  const APP_VERSION = '25';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -1068,6 +1068,52 @@
   }
 
   // ---------- Lend tab ----------
+
+  // Форма объявления разбита на шаги — на телефоне длинный список из полей
+  // "Марка/Модель/.../Описание" одним экраном выглядел утомительно и
+  // терялось ощущение прогресса. Показываем только текущий .wizard-step,
+  // проверяя валидность полей текущего шага перед переходом на следующий
+  // (без этого, например, можно было бы дойти до "Фото" с пустой "Ценой").
+  const LISTING_WIZARD_STEPS = ['Автомобиль', 'Местоположение', 'Цена', 'Фото', 'Условия'];
+  let listingWizardStep = 1;
+
+  function renderListingWizard() {
+    document.querySelectorAll('#listingForm .wizard-step').forEach((el) => {
+      el.hidden = Number(el.dataset.step) !== listingWizardStep;
+    });
+    document.querySelectorAll('#listingWizardProgress .wizard-progress-dot').forEach((dot) => {
+      const step = Number(dot.dataset.stepDot);
+      dot.classList.toggle('active', step === listingWizardStep);
+      dot.classList.toggle('done', step < listingWizardStep);
+    });
+    document.getElementById('listingWizardTitle').textContent =
+      `Шаг ${listingWizardStep} из ${LISTING_WIZARD_STEPS.length} · ${LISTING_WIZARD_STEPS[listingWizardStep - 1]}`;
+    document.getElementById('listingWizardBackBtn').hidden = listingWizardStep === 1;
+    const isLast = listingWizardStep === LISTING_WIZARD_STEPS.length;
+    document.getElementById('listingWizardNextBtn').hidden = isLast;
+    document.getElementById('listingSubmitBtn').hidden = !isLast;
+  }
+
+  function validateListingWizardStep(step) {
+    const container = document.querySelector(`#listingForm .wizard-step[data-step="${step}"]`);
+    const invalid = container.querySelector(':invalid');
+    if (invalid) {
+      invalid.reportValidity();
+      return false;
+    }
+    return true;
+  }
+
+  document.getElementById('listingWizardNextBtn').addEventListener('click', () => {
+    if (!validateListingWizardStep(listingWizardStep)) return;
+    listingWizardStep = Math.min(LISTING_WIZARD_STEPS.length, listingWizardStep + 1);
+    renderListingWizard();
+  });
+  document.getElementById('listingWizardBackBtn').addEventListener('click', () => {
+    listingWizardStep = Math.max(1, listingWizardStep - 1);
+    renderListingWizard();
+  });
+
   async function loadLendTab() {
     const gate = document.getElementById('lendGate');
     const form = document.getElementById('listingForm');
@@ -1077,6 +1123,8 @@
     } else {
       gate.hidden = true;
       form.hidden = false;
+      listingWizardStep = 1;
+      renderListingWizard();
     }
     loadMyListings();
   }
@@ -1085,6 +1133,7 @@
 
   document.getElementById('listingForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!validateListingWizardStep(listingWizardStep)) return;
     const city = document.getElementById('carCity').value.trim();
     if (!isKnownCityName(city)) {
       toast('Выберите город из списка');
@@ -1143,6 +1192,8 @@
       document.getElementById('carSeats').value = 5;
       document.getElementById('carMinRentalDays').value = 1;
       document.getElementById('carDeposit').value = 0;
+      listingWizardStep = 1;
+      renderListingWizard();
       await loadMyListings();
       document
         .querySelector(`.photos-toggle-btn[data-listing-id="${listing.id}"]`)
@@ -1451,7 +1502,7 @@
           </div>`;
     }
     return `
-      <div class="card car-card">
+      <div class="card car-card car-card--${badgeClass}">
         <div class="row">
           <div class="route">${escapeHtml(booking.brand)} ${escapeHtml(booking.model)} (${booking.year})</div>
           <span class="badge ${badgeClass}">${BOOKING_STATUS_LABELS[booking.status] || booking.status}</span>
@@ -1482,7 +1533,7 @@
           </div>`;
     }
     return `
-      <div class="card car-card">
+      <div class="card car-card car-card--${badgeClass}">
         <div class="row">
           <div class="route">${escapeHtml(booking.brand)} ${escapeHtml(booking.model)} (${booking.year})</div>
           <span class="badge ${badgeClass}">${BOOKING_STATUS_LABELS[booking.status] || booking.status}</span>
@@ -1562,6 +1613,83 @@
     }
   });
 
+  // ---------- Owner earnings stats ----------
+  // /api/cars/mine/stats уже существовал (см. server/routes/cars.ts) и
+  // принимал произвольный диапазон дат — не хватало только интерфейса:
+  // владелец видел лишь общее число броней за всё время (см. ownerStats
+  // чуть ниже), без разбивки по периодам.
+  function periodRange(period) {
+    const now = new Date();
+    const todayStr = toDateStr(now);
+    if (period === 'day') return { from: todayStr, to: todayStr, label: 'Сегодня' };
+    if (period === 'week') {
+      const dow = now.getDay() || 7; // Пн=1 ... Вс=7
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - (dow - 1));
+      return { from: toDateStr(monday), to: todayStr, label: 'Текущая неделя' };
+    }
+    if (period === 'month') {
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: toDateStr(first), to: todayStr, label: 'Текущий месяц' };
+    }
+    if (period === 'year') {
+      const first = new Date(now.getFullYear(), 0, 1);
+      return { from: toDateStr(first), to: todayStr, label: `${now.getFullYear()} год` };
+    }
+    return null;
+  }
+
+  let currentEarningsPeriod = 'day';
+
+  async function loadEarningsStats(period) {
+    currentEarningsPeriod = period;
+    let from;
+    let to;
+    let label;
+    if (period === 'custom') {
+      from = document.getElementById('earningsFrom').value;
+      to = document.getElementById('earningsTo').value;
+      if (!from || !to) {
+        toast('Укажите обе даты периода');
+        return;
+      }
+      if (to < from) {
+        toast('Дата окончания раньше даты начала');
+        return;
+      }
+      label = `${formatDate(from)} — ${formatDate(to)}`;
+    } else {
+      const r = periodRange(period);
+      from = r.from;
+      to = r.to;
+      label = r.label;
+    }
+    const row = document.getElementById('earningsStatsRow');
+    row.innerHTML = skeletonHtml(2);
+    try {
+      const { stats } = await apiFetch(`/cars/mine/stats?from=${from}&to=${to}`);
+      document.getElementById('earningsPeriodLabel').textContent = label;
+      row.innerHTML = `
+        <div class="stat-tile"><div class="value">${stats.earnings} ₽</div><div class="label">Заработок</div></div>
+        <div class="stat-tile"><div class="value">${stats.bookingsCount}</div><div class="label">Броней за период</div></div>
+      `;
+    } catch (err) {
+      row.innerHTML = '';
+      toast(err.message);
+    }
+  }
+
+  document.getElementById('earningsPeriodSwitch').addEventListener('click', (e) => {
+    const btn = e.target.closest('.dir-btn');
+    if (!btn) return;
+    document.querySelectorAll('#earningsPeriodSwitch .dir-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    const period = btn.dataset.period;
+    document.getElementById('earningsCustomRange').hidden = period !== 'custom';
+    if (period !== 'custom') loadEarningsStats(period);
+  });
+  document.getElementById('earningsApplyBtn').addEventListener('click', () => loadEarningsStats('custom'));
+
   async function loadBookingsTab() {
     if (state.bookingsSub === 'renter') {
       const contactsList = document.getElementById('renterContactsList');
@@ -1587,6 +1715,8 @@
         toast(err.message);
       }
     } else {
+      loadEarningsStats(currentEarningsPeriod);
+
       const contactsList = document.getElementById('ownerContactsList');
       const contactsEmpty = document.getElementById('ownerContactsEmpty');
       try {
@@ -1606,7 +1736,6 @@
         empty.hidden = bookings.length > 0;
         list.innerHTML = bookings.map(ownerBookingCardHtml).join('');
         const confirmedCount = bookings.filter((b) => b.status === 'confirmed' || b.status === 'completed').length;
-        const earnings = bookings.filter((b) => b.status !== 'cancelled').reduce((sum, b) => sum + b.total_price, 0);
         document.getElementById('ownerStats').innerHTML = `
           <div class="stat-tile"><div class="value">${bookings.length}</div><div class="label">Всего броней</div></div>
           <div class="stat-tile"><div class="value">${confirmedCount}</div><div class="label">Подтверждено</div></div>

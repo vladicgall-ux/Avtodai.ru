@@ -9,10 +9,13 @@
      свою тему через tg-theme-*/max-theme-*, app.js применяет её поверх
      (см. applyThemeVars) — но вне Mini App (обычный браузер/PWA) этих
      переменных не существует, и используется ровно эта, брендовая тема. */
-  --bg: var(--tg-theme-bg-color, #d3d5cf);
-  --secondary-bg: var(--tg-theme-secondary-bg-color, #f6f4e9);
-  --text: var(--tg-theme-text-color, #253022);
-  --hint: var(--tg-theme-hint-color, #6b715f);
+  --bg: var(--tg-theme-bg-color, #d6d8d0);
+  --secondary-bg: var(--tg-theme-secondary-bg-color, #fbfaf3);
+  --text: var(--tg-theme-text-color, #1c2417);
+  /* Темнее прежнего (#6b715f → #565c4c) — мелкий вспомогательный текст
+     (даты, подписи, метки) читался тускло на светлом фоне, из-за чего
+     весь интерфейс казался "серым", хотя фон сам по себе не менялся. */
+  --hint: var(--tg-theme-hint-color, #565c4c);
   --link: var(--tg-theme-link-color, #33472c);
   --button: var(--tg-theme-button-color, #33472c);
   --button-text: var(--tg-theme-button-text-color, #f2ecd8);
@@ -20,9 +23,12 @@
   --panel-text: #f2ecd8;
   --accent: #33472c;
   --accent-bright: #4c6b40;
-  --border: rgba(0, 0, 0, 0.12);
+  /* Заметнее прежнего (0.12 → 0.16 непрозрачности) — карточкам и полям
+     не хватало чёткой границы на светлом фоне. */
+  --border: rgba(0, 0, 0, 0.16);
   --danger: #b3392f;
   --success: #3d6b2f;
+  --card-shadow: 0 2px 10px rgba(30, 40, 25, 0.1), 0 1px 2px rgba(30, 40, 25, 0.08);
 }
 
 * { box-sizing: border-box; }
@@ -36,7 +42,14 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
+  /* Лёгкий вертикальный градиент вместо плоской заливки — на больших
+     однотонных экранах (поиск, профиль) плоский серый фон выглядел тускло;
+     background-color — сплошной фоллбэк (например, для темы Telegram/MAX,
+     которая переопределяет --bg одним цветом), градиент поверх него почти
+     не заметен глазу, но убирает ощущение "стены бетона". */
+  background-color: var(--bg);
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 220px);
+  background-attachment: fixed;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -149,14 +162,24 @@ button, .dir-btn, .tab-btn, a.btn {
   background: var(--secondary-bg);
   border-radius: 14px;
   padding: 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: var(--card-shadow);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .car-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
+  /* Цветная полоса слева по статусу брони/объявления — задаётся модификатором
+     .car-card--ok/--pending/--cancelled/--completed (см. statusAccentClass в
+     app.js). Карточка без модификатора (например, в поиске) остаётся как есть. */
+  border-left: 4px solid transparent;
 }
+.car-card--ok { border-left-color: var(--success); }
+.car-card--pending { border-left-color: #d99a1f; }
+.car-card--cancelled { border-left-color: var(--danger); }
+.car-card--completed { border-left-color: var(--accent-bright); }
 .car-card .route {
   font-size: 16px;
   font-weight: 700;
@@ -173,9 +196,10 @@ button, .dir-btn, .tab-btn, a.btn {
   color: var(--hint);
 }
 .car-card .price {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 800;
   color: var(--success);
+  letter-spacing: -0.01em;
 }
 .car-card .comment {
   font-size: 13px;
@@ -301,6 +325,44 @@ form.card {
   gap: 12px;
 }
 form.card h3 { margin: 0 0 4px; }
+
+.wizard-progress {
+  display: flex;
+  gap: 6px;
+  margin: 2px 0 0;
+}
+.wizard-progress-dot {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+}
+.wizard-progress-dot.active,
+.wizard-progress-dot.done {
+  background: var(--accent-bright);
+}
+.wizard-step-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.wizard-step {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.wizard-nav {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.wizard-nav .btn {
+  flex: 1;
+  width: auto;
+}
 label {
   display: flex;
   flex-direction: column;
@@ -431,9 +493,12 @@ input[type="date"], input[type="datetime-local"] {
   align-items: center;
   gap: 2px;
   padding: 6px 2px;
-  font-size: 20px;
   color: var(--hint);
   cursor: pointer;
+}
+.tab-icon {
+  width: 23px;
+  height: 23px;
 }
 .tab-btn span {
   font-size: 11px;
@@ -864,6 +929,34 @@ input[type="date"], input[type="datetime-local"] {
 .stat-tile .label {
   font-size: 12px;
   color: var(--hint);
+}
+
+#earningsCard .stats-row {
+  margin-bottom: 0;
+  grid-template-columns: repeat(2, 1fr);
+}
+#earningsCard h3 { margin: 0 0 10px; }
+.earnings-range {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 10px 0;
+}
+.earnings-range label {
+  flex: 1;
+  font-size: 12px;
+  color: var(--hint);
+  font-weight: 600;
+  gap: 4px;
+}
+.earnings-range .btn {
+  width: auto;
+  flex: 0 0 auto;
+}
+.earnings-period-label {
+  font-size: 12px;
+  color: var(--hint);
+  margin: 4px 0 10px;
 }
 
 /* Ответ администратора в поддержке */

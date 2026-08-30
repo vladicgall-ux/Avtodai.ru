@@ -39,7 +39,7 @@
   <meta property="og:image" content="assets/icon-512.png" />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:image" content="assets/icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=14" />
+  <link rel="stylesheet" href="styles.css?v=15" />
   <!-- Без async/defer намеренно: скрипт должен успеть выполниться и создать
        window.Telegram.WebApp ДО того, как app.js (defer) начнёт проверять
        платформу — иначе относительный порядок async- и defer-скриптов не
@@ -163,82 +163,114 @@
 
       <form id="listingForm" class="card" hidden>
         <h3>Новое объявление</h3>
-        <label>Марка
-          <input type="text" id="carBrand" placeholder="Например, Kia" required maxlength="60" />
-        </label>
-        <label>Модель
-          <input type="text" id="carModel" placeholder="Rio" required maxlength="60" />
-        </label>
-        <label>Год выпуска
-          <input type="number" id="carYear" min="1970" max="2027" required />
-        </label>
-        <label>Цвет
-          <input type="text" id="carColor" maxlength="40" placeholder="Белый" />
-        </label>
-        <label>Госномер
-          <input type="text" id="carPlate" required maxlength="20" placeholder="А123ВС174" />
-        </label>
-        <label>Область
-          <select id="carRegion" required>
-            <option value="" disabled selected>Выберите область</option>
-          </select>
-        </label>
-        <label>Город
-          <select id="carCity" required>
-            <option value="" disabled selected>Сначала выберите область</option>
-          </select>
-        </label>
-        <label>Класс автомобиля
-          <select id="carClass">
-            <option value="economy">Эконом</option>
-            <option value="comfort">Комфорт</option>
-            <option value="business">Бизнес</option>
-            <option value="premium">Премиум</option>
-            <option value="suv">Внедорожник</option>
-            <option value="minivan">Минивэн</option>
-          </select>
-        </label>
-        <label>Коробка передач
-          <select id="carTransmission">
-            <option value="manual">Механика</option>
-            <option value="automatic">Автомат</option>
-          </select>
-        </label>
-        <label>Тип топлива
-          <select id="carFuelType">
-            <option value="petrol">Бензин</option>
-            <option value="diesel">Дизель</option>
-            <option value="hybrid">Гибрид</option>
-            <option value="electric">Электро</option>
-            <option value="gas">Газ</option>
-          </select>
-        </label>
-        <label>Количество мест
-          <input type="number" id="carSeats" min="1" max="9" value="5" required />
-        </label>
-        <label>Цена за сутки, ₽
-          <input type="number" id="carPricePerDay" min="0" max="1000000" required />
-        </label>
-        <label>Залог, ₽
-          <input type="number" id="carDeposit" min="0" max="5000000" value="0" />
-        </label>
-        <label>Минимальный срок аренды, суток
-          <input type="number" id="carMinRentalDays" min="1" max="90" value="1" />
-        </label>
-        <label>Лимит пробега, км/сутки (необязательно)
-          <input type="number" id="carMileageLimit" min="0" max="10000" />
-        </label>
-        <label>Ограничения (необязательно)
-          <textarea id="carRestrictions" maxlength="300" placeholder="Например, только для водителей от 23 лет со стажем от 3 лет"></textarea>
-        </label>
-        <label>Описание
-          <textarea id="carDescription" maxlength="1000" placeholder="Расскажите об автомобиле подробнее"></textarea>
-        </label>
-        <label>Фото автомобиля (можно добавить и позже, 1 фото)
-          <input type="file" id="carPhotoInput" accept="image/jpeg,image/png,image/webp" />
-        </label>
-        <div id="carPhotoPreview" class="file-thumbs"></div>
-        <button type="submit" class="btn">Опубликовать объявление</button>
+
+        <!-- Форму раньше показывали одним длинным списком полей — разбита на
+             шаги, чтобы на телефоне не приходилось листать один экран целиком:
+             видно только текущий шаг, остальные — hidden (см. wizard-step в app.js). -->
+        <div class="wizard-progress" id="listingWizardProgress">
+          <div class="wizard-progress-dot active" data-step-dot="1"></div>
+          <div class="wizard-progress-dot" data-step-dot="2"></div>
+          <div class="wizard-progress-dot" data-step-dot="3"></div>
+          <div class="wizard-progress-dot" data-step-dot="4"></div>
+          <div class="wizard-progress-dot" data-step-dot="5"></div>
+        </div>
+        <p class="wizard-step-title" id="listingWizardTitle">Шаг 1 из 5 · Автомобиль</p>
+
+        <div class="wizard-step" data-step="1">
+          <label>Марка
+            <input type="text" id="carBrand" placeholder="Например, Kia" required maxlength="60" />
+          </label>
+          <label>Модель
+            <input type="text" id="carModel" placeholder="Rio" required maxlength="60" />
+          </label>
+          <label>Год выпуска
+            <input type="number" id="carYear" min="1970" max="2027" required />
+          </label>
+          <label>Цвет
+            <input type="text" id="carColor" maxlength="40" placeholder="Белый" />
+          </label>
+          <label>Госномер
+            <input type="text" id="carPlate" required maxlength="20" placeholder="А123ВС174" />
+          </label>
+          <label>Класс автомобиля
+            <select id="carClass">
+              <option value="economy">Эконом</option>
+              <option value="comfort">Комфорт</option>
+              <option value="business">Бизнес</option>
+              <option value="premium">Премиум</option>
+              <option value="suv">Внедорожник</option>
+              <option value="minivan">Минивэн</option>
+            </select>
+          </label>
+          <label>Коробка передач
+            <select id="carTransmission">
+              <option value="manual">Механика</option>
+              <option value="automatic">Автомат</option>
+            </select>
+          </label>
+          <label>Тип топлива
+            <select id="carFuelType">
+              <option value="petrol">Бензин</option>
+              <option value="diesel">Дизель</option>
+              <option value="hybrid">Гибрид</option>
+              <option value="electric">Электро</option>
+              <option value="gas">Газ</option>
+            </select>
+          </label>
+          <label>Количество мест
+            <input type="number" id="carSeats" min="1" max="9" value="5" required />
+          </label>
+        </div>
+
+        <div class="wizard-step" data-step="2" hidden>
+          <label>Область
+            <select id="carRegion" required>
+              <option value="" disabled selected>Выберите область</option>
+            </select>
+          </label>
+          <label>Город
+            <select id="carCity" required>
+              <option value="" disabled selected>Сначала выберите область</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="wizard-step" data-step="3" hidden>
+          <label>Цена за сутки, ₽
+            <input type="number" id="carPricePerDay" min="0" max="1000000" required />
+          </label>
+          <label>Залог, ₽
+            <input type="number" id="carDeposit" min="0" max="5000000" value="0" />
+          </label>
+          <label>Минимальный срок аренды, суток
+            <input type="number" id="carMinRentalDays" min="1" max="90" value="1" />
+          </label>
+          <label>Лимит пробега, км/сутки (необязательно)
+            <input type="number" id="carMileageLimit" min="0" max="10000" />
+          </label>
+        </div>
+
+        <div class="wizard-step" data-step="4" hidden>
+          <label>Фото автомобиля (можно добавить и позже, 1 фото)
+            <input type="file" id="carPhotoInput" accept="image/jpeg,image/png,image/webp" />
+          </label>
+          <div id="carPhotoPreview" class="file-thumbs"></div>
+        </div>
+
+        <div class="wizard-step" data-step="5" hidden>
+          <label>Ограничения (необязательно)
+            <textarea id="carRestrictions" maxlength="300" placeholder="Например, только для водителей от 23 лет со стажем от 3 лет"></textarea>
+          </label>
+          <label>Описание
+            <textarea id="carDescription" maxlength="1000" placeholder="Расскажите об автомобиле подробнее"></textarea>
+          </label>
+        </div>
+
+        <div class="wizard-nav">
+          <button type="button" class="btn secondary" id="listingWizardBackBtn" hidden>Назад</button>
+          <button type="button" class="btn" id="listingWizardNextBtn">Далее</button>
+          <button type="submit" class="btn" id="listingSubmitBtn" hidden>Опубликовать объявление</button>
+        </div>
       </form>
 
       <div class="card" style="margin-top:12px;">
@@ -265,6 +297,23 @@
       </div>
 
       <div id="bookingsOwnerSection" hidden>
+        <div class="card" id="earningsCard">
+          <h3>💰 Статистика заработка</h3>
+          <div class="direction-switch" id="earningsPeriodSwitch">
+            <button type="button" class="dir-btn active" data-period="day">День</button>
+            <button type="button" class="dir-btn" data-period="week">Неделя</button>
+            <button type="button" class="dir-btn" data-period="month">Месяц</button>
+            <button type="button" class="dir-btn" data-period="year">Год</button>
+            <button type="button" class="dir-btn" data-period="custom">Период</button>
+          </div>
+          <div id="earningsCustomRange" class="earnings-range" hidden>
+            <label>С<input type="date" id="earningsFrom" /></label>
+            <label>По<input type="date" id="earningsTo" /></label>
+            <button type="button" class="btn small" id="earningsApplyBtn">Показать</button>
+          </div>
+          <p class="earnings-period-label" id="earningsPeriodLabel"></p>
+          <div class="stats-row" id="earningsStatsRow"></div>
+        </div>
         <div class="stats-row" id="ownerStats"></div>
         <div class="section-title">Запросы на контакты</div>
         <div id="ownerContactsList" class="cards"></div>
@@ -330,14 +379,33 @@
     </section>
   </main>
 
+  <!-- Единый набор line-иконок вместо эмодзи: эмодзи в разных ОС рисуются
+       совершенно по-разному (Apple/Google/Samsung), из-за чего нижнее меню
+       выглядело "вразнобой". SVG с stroke="currentColor" сам подхватывает
+       цвет активной/неактивной вкладки из .tab-btn (color/--link/--hint). -->
   <nav class="tabbar" id="tabbar" hidden>
-    <button class="tab-btn active" data-tab="search">🔎<span>Поиск</span></button>
-    <button class="tab-btn" data-tab="lend">🔑<span>Сдать авто</span></button>
-    <button class="tab-btn" data-tab="bookings">🧾<span>Мои брони</span></button>
-    <button class="tab-btn" data-tab="profile">👤<span>Профиль</span></button>
-    <button class="tab-btn" data-tab="admin" id="adminTabBtn" hidden>🛠<span>Админ</span></button>
+    <button class="tab-btn active" data-tab="search">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>Поиск</span>
+    </button>
+    <button class="tab-btn" data-tab="lend">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M11 12 20.5 2.5"/><path d="M16 6l2.5 2.5"/><path d="M19.5 3.5 22 6"/></svg>
+      <span>Сдать авто</span>
+    </button>
+    <button class="tab-btn" data-tab="bookings">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l3 3v17l-2-1.2-2 1.2-2-1.2-2 1.2-2-1.2-2 1.2V2z"/><line x1="8.5" y1="7" x2="15.5" y2="7"/><line x1="8.5" y1="11" x2="15.5" y2="11"/><line x1="8.5" y1="15" x2="13" y2="15"/></svg>
+      <span>Мои брони</span>
+    </button>
+    <button class="tab-btn" data-tab="profile">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.2-4.2 4.8-6.5 8-6.5s6.8 2.3 8 6.5"/></svg>
+      <span>Профиль</span>
+    </button>
+    <button class="tab-btn" data-tab="admin" id="adminTabBtn" hidden>
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 1 5.4-5.4L21 6l-3-3-3.3 3.3z"/></svg>
+      <span>Админ</span>
+    </button>
   </nav>
 
-  <script src="app.js?v=24" defer></script>
+  <script src="app.js?v=25" defer></script>
 </body>
 </html>
