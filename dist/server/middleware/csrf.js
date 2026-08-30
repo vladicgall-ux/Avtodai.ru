@@ -45,7 +45,21 @@ function csrfProtection(req, res, next) {
         res.status(403).json({ error: 'Запрос отклонён: отсутствует заголовок Origin' });
         return;
     }
-    if (!candidate.startsWith(config_1.config.publicOrigin)) {
+    // Сравниваем именно origin (схема+хост+порт), а не префикс строки: startsWith
+    // одновременно и слишком строг (ловит, например, лишний слэш на конце
+    // PUBLIC_ORIGIN, из-за чего с точно тем же доменом запрос отклонялся бы),
+    // и недостаточно строг как защита — "https://autodai.ru.evil.com" тоже
+    // начинается с "https://autodai.ru".
+    let candidateOrigin;
+    try {
+        candidateOrigin = new URL(candidate).origin;
+    }
+    catch {
+        res.status(403).json({ error: 'Запрос отклонён: недопустимый источник' });
+        return;
+    }
+    const expectedOrigin = config_1.config.publicOrigin.replace(/\/+$/, '');
+    if (candidateOrigin !== expectedOrigin) {
         res.status(403).json({ error: 'Запрос отклонён: недопустимый источник' });
         return;
     }
