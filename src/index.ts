@@ -10,6 +10,23 @@ import { sweepExpiredWebAuth } from './services/webSessionService';
 const SWEEP_INTERVAL_MS = 60_000;
 
 async function main() {
+  console.log(`NODE_EXTRA_CA_CERTS=${process.env.NODE_EXTRA_CA_CERTS ?? '(не задан)'}`);
+  if (config.maxBotToken && !process.env.NODE_EXTRA_CA_CERTS) {
+    // API MAX (business.max.ru) отдаёт сертификат, подписанный Russian
+    // Trusted Root CA (Минцифры) — этого корневого сертификата нет в
+    // стандартном доверенном хранилище Node.js/Mozilla. Если основной
+    // сервер работает не в российском дата-центре, запросы к MAX упадут с
+    // ошибкой TLS (UNABLE_TO_VERIFY_LEAF_SIGNATURE), пока сертификат из
+    // certs/russian_trusted_ca.pem не подключён через NODE_EXTRA_CA_CERTS
+    // (см. .env.example и README.md). Это не критическая ошибка — бот
+    // Telegram и веб продолжат работать, — но бот MAX не сможет отвечать.
+    console.warn(
+      'MAX_BOT_TOKEN задан, но NODE_EXTRA_CA_CERTS — нет. Если основной сервер ' +
+        'не в российском регионе, запросы к API MAX могут падать по TLS. ' +
+        'Укажите NODE_EXTRA_CA_CERTS=./certs/russian_trusted_ca.pem — см. README.md.'
+    );
+  }
+
   const app = createApp();
   app.listen(config.port, () => {
     console.log(`${config.serviceName}: HTTP-сервер и Mini App запущены на порту ${config.port}`);
