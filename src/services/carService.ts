@@ -169,10 +169,15 @@ export function searchListings(filter: SearchFilter): CarListingWithExtras[] {
     clauses.push('c.deposit = 0');
   }
   if (filter.dateFrom && filter.dateTo) {
+    // Строгое неравенство на границах: date_to — день возврата, не день
+    // аренды (см. utils/dateFormat.ts::rentalDays), поэтому бронь,
+    // заканчивающаяся 8-го, и новая бронь, начинающаяся 8-го — не
+    // пересекаются: автомобиль в этот день просто переходит от одного
+    // арендатора к другому.
     clauses.push(`NOT EXISTS (
       SELECT 1 FROM bookings b
       WHERE b.listing_id = c.id AND b.status IN ('pending','confirmed')
-        AND b.date_from <= @dateTo AND b.date_to >= @dateFrom
+        AND b.date_from < @dateTo AND b.date_to > @dateFrom
     )`);
     params.dateFrom = filter.dateFrom;
     params.dateTo = filter.dateTo;
@@ -242,7 +247,13 @@ export function setListingStatus(id: number, ownerId: number, status: ListingSta
   return info.changes > 0;
 }
 
-/** Проверяет, свободен ли автомобиль на указанный период (без учёта переданной брони, если задана). */
+/**
+ * Проверяет, свободен ли автомобиль на указанный период (без учёта
+ * переданной брони, если задана). Строгое неравенство на границах — date_to
+ * это день возврата, не день аренды (см. rentalDays), поэтому бронь,
+ * заканчивающаяся в день X, не блокирует новую бронь, начинающуюся в тот же
+ * день X (машина в этот день просто передаётся следующему арендатору).
+ */
 export function isListingAvailable(
   listingId: number,
   dateFrom: string,
@@ -253,7 +264,7 @@ export function isListingAvailable(
     .prepare(
       `SELECT COUNT(*) AS n FROM bookings
        WHERE listing_id = ? AND status IN ('pending','confirmed')
-         AND date_from <= ? AND date_to >= ?
+         AND date_from < ? AND date_to > ?
          AND (? IS NULL OR id != ?)`
     )
     .get(listingId, dateTo, dateFrom, excludeBookingId ?? null, excludeBookingId ?? null) as { n: number };
@@ -261,7 +272,7 @@ export function isListingAvailable(
   const blocked = db
     .prepare(
       `SELECT COUNT(*) AS n FROM listing_blocked_dates
-       WHERE listing_id = ? AND date_from <= ? AND date_to >= ?`
+       WHERE listing_id = ? AND date_from < ? AND date_to > ?`
     )
     .get(listingId, dateTo, dateFrom) as { n: number };
   return blocked.n === 0;

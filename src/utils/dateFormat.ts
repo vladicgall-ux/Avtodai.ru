@@ -20,7 +20,15 @@ function toUtcDays(iso: string): number {
   return Date.UTC(year, month - 1, day) / 86_400_000;
 }
 
-/** Число дней аренды включительно (date_from и date_to — обе входят в срок). */
+/**
+ * Число дней аренды: date_from — день получения автомобиля, date_to — день
+ * возврата (сам день возврата в срок не входит, как в отеле — заезд/выезд).
+ * Бронь «с 4 по 8 сентября» — это 4 дня аренды (4→5, 5→6, 6→7, 7→8), а не 5:
+ * начислять деньги за 8-е число некорректно, если в этот день автомобиль
+ * уже возвращается владельцу. Раньше формула добавляла +1 и включала оба
+ * конца периода, из-за чего 4-дневная аренда считалась и оплачивалась как
+ * 5-дневная.
+ */
 export function rentalDays(dateFrom: string, dateTo: string): number {
-  return toUtcDays(dateTo) - toUtcDays(dateFrom) + 1;
+  return toUtcDays(dateTo) - toUtcDays(dateFrom);
 }

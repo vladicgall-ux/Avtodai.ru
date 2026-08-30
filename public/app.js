@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '22';
+  const APP_VERSION = '23';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -1051,7 +1051,7 @@
           toast('Дата окончания раньше даты начала');
           return;
         }
-        if (busyRanges.some((r) => r.dateFrom <= dateTo && r.dateTo >= dateFrom)) {
+        if (busyRanges.some((r) => r.dateFrom < dateTo && r.dateTo > dateFrom)) {
           toast('На эти даты автомобиль уже занят — выберите другой период');
           return;
         }
