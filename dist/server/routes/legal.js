@@ -43,6 +43,7 @@ exports.legalRouter.get('/contract/:bookingId', auth_1.requireAuth, (req, res) =
         res.status(403).json({ error: 'Договор можно сформировать только после подтверждения брони владельцем' });
         return;
     }
+    const variant = req.query.variant === 'blank' ? 'blank' : 'filled';
     res.set('Content-Type', 'text/html; charset=utf-8');
-    res.send((0, contractService_1.renderContractHtml)(booking));
+    res.send((0, contractService_1.renderContractHtml)(booking, variant));
 });

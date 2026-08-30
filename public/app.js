@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '20';
+  const APP_VERSION = '21';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -1431,7 +1431,10 @@
 
   function contractButtonHtml(booking) {
     if (booking.status !== 'confirmed' && booking.status !== 'completed') return '';
-    return `<button type="button" class="btn secondary small contract-btn" data-booking-id="${booking.id}">Сформировать договор аренды</button>`;
+    return `
+      <button type="button" class="btn secondary small contract-btn" data-booking-id="${booking.id}" data-variant="filled">Договор (заполненный)</button>
+      <button type="button" class="btn secondary small contract-btn" data-booking-id="${booking.id}" data-variant="blank">Договор (чистый бланк)</button>
+    `;
   }
 
   function renterBookingCardHtml(booking) {
@@ -1612,17 +1615,18 @@
     }
   }
 
-  async function openContract(bookingId) {
+  async function openContract(bookingId, variant = 'filled') {
+    const query = variant === 'blank' ? '?variant=blank' : '';
     const mode = platformMode();
     if (mode === 'web') {
-      window.open(`/api/legal/contract/${bookingId}`, '_blank');
+      window.open(`/api/legal/contract/${bookingId}${query}`, '_blank');
       return;
     }
     // Inside a Mini App webview, window.open() carries no init-data header
     // (it's not a fetch call) — fetch the HTML ourselves and show it in an
     // in-page iframe overlay instead, which sidesteps popup blockers too.
     try {
-      const html = await apiFetchText(`/legal/contract/${bookingId}`);
+      const html = await apiFetchText(`/legal/contract/${bookingId}${query}`);
       const overlay = document.createElement('div');
       overlay.className = 'overlay-full';
       const header = document.createElement('div');
@@ -1682,7 +1686,7 @@
         return;
       }
       if (contractBtn) {
-        openContract(contractBtn.dataset.bookingId);
+        openContract(contractBtn.dataset.bookingId, contractBtn.dataset.variant || 'filled');
         return;
       }
       if (starBtn) {
@@ -1725,13 +1729,51 @@
       document.getElementById('adminTabBtn').hidden = !isAdmin;
       const card = document.getElementById('profileCard');
       card.innerHTML = `
-        <div class="profile-row"><span class="label">Имя</span><span>${escapeHtml(user.full_name || '—')}</span></div>
+        <div class="profile-row"><span class="label">Имя</span><span id="profileNameValue">${escapeHtml(user.full_name || '—')}</span></div>
+        <div id="profileNameEditRow" style="margin:-6px 0 10px;">
+          <button type="button" class="btn secondary small" id="profileNameEditBtn">✏️ Изменить ФИО</button>
+        </div>
+        <div id="profileNameEditForm" hidden style="margin:-6px 0 10px;">
+          <input type="text" id="profileNameInput" placeholder="Фамилия Имя Отчество" maxlength="100" value="${escapeHtml(user.full_name || '')}" />
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button type="button" class="btn secondary small" id="profileNameCancelBtn">Отмена</button>
+            <button type="button" class="btn small" id="profileNameSaveBtn">Сохранить</button>
+          </div>
+        </div>
         <div class="profile-row"><span class="label">Username</span><span>${user.username ? '@' + escapeHtml(user.username) : '—'}</span></div>
         <div class="profile-row"><span class="label">Платформа</span><span>${user.platform === 'max' ? 'MAX' : 'Telegram'}</span></div>
         <div class="profile-row"><span class="label">Телефон</span><span>${user.phone_verified ? '✅ подтверждён' : '❌ не подтверждён'}</span></div>
         ${ownerRating?.count ? `<div class="profile-row"><span class="label">Рейтинг как владелец</span><span>${starsHtml(ownerRating.avg, ownerRating.count)}</span></div>` : ''}
         ${renterRating?.count ? `<div class="profile-row"><span class="label">Рейтинг как арендатор</span><span>${starsHtml(renterRating.avg, renterRating.count)}</span></div>` : ''}
       `;
+      document.getElementById('profileNameEditBtn').addEventListener('click', () => {
+        document.getElementById('profileNameEditRow').hidden = true;
+        document.getElementById('profileNameEditForm').hidden = false;
+      });
+      document.getElementById('profileNameCancelBtn').addEventListener('click', () => {
+        document.getElementById('profileNameInput').value = state.me.full_name || '';
+        document.getElementById('profileNameEditForm').hidden = true;
+        document.getElementById('profileNameEditRow').hidden = false;
+      });
+      document.getElementById('profileNameSaveBtn').addEventListener('click', async (e) => {
+        const fullName = document.getElementById('profileNameInput').value.trim().replace(/\s+/g, ' ');
+        if (fullName.split(' ').length < 3) {
+          toast('Укажите фамилию, имя и отчество через пробел');
+          return;
+        }
+        e.target.disabled = true;
+        try {
+          const { user: updated } = await apiFetch('/users/me/name', { method: 'POST', body: JSON.stringify({ fullName }) });
+          state.me = updated;
+          toast('ФИО обновлено');
+          document.getElementById('profileNameValue').textContent = updated.full_name;
+          document.getElementById('profileNameEditForm').hidden = true;
+          document.getElementById('profileNameEditRow').hidden = false;
+        } catch (err) {
+          toast(err.message);
+        }
+        e.target.disabled = false;
+      });
       document.getElementById('logoutCard').hidden = platformMode() !== 'web';
 
       if (!state.botUsername) {

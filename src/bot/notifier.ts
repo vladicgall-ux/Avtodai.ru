@@ -123,7 +123,8 @@ export async function notifyUser(
 export async function notifyContractReady(user: UserRecord, bookingId: number): Promise<boolean> {
   if (!config.webappUrl) return false;
   const deepLink = `${config.webappUrl}?tab=bookings&contract=${bookingId}`;
-  const text = '📄 Договор аренды и акт приёма-передачи готовы. Откройте, распечатайте или сохраните как PDF — часть полей (паспорт, ВУ, VIN, СТС) заполните от руки при встрече.';
+  const text =
+    '📄 Договор аренды и акт приёма-передачи готовы — в разделе «Мои брони» доступны два варианта: заполненный данными сторон и чистый бланк (на случай, если в профиле указано не настоящее имя — впишите верные данные от руки). Распечатайте или сохраните как PDF; часть полей (паспорт, ВУ, VIN, СТС) в любом варианте заполняется от руки при встрече.';
   if (user.platform === 'max') {
     return notifyMaxWithLink(user, text, '📄 Открыть договор', deepLink);
   }

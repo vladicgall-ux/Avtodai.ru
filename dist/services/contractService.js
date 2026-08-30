@@ -24,10 +24,21 @@ function blank(width = 24) {
  * остаются пустыми строками для заполнения от руки при личной встрече —
  * автодай.рф выступает только информационным посредником (ст. 1253.1 ГК РФ)
  * и не должен собирать данные, ему не принадлежащие по сути сделки.
+ *
+ * variant='blank' дополнительно очищает ФИО и телефоны обеих сторон, оставляя
+ * их пустыми строками для заполнения от руки. Причина: ФИО в профиле —
+ * то, что пользователь ввёл сам при регистрации, сервис его не проверяет
+ * (см. requireActiveUser) — если это не настоящее имя, «заполненный»
+ * вариант зафиксирует его в подписываемом договоре. «Чистый» вариант
+ * позволяет сторонам вписать реальные данные по документам при встрече,
+ * сохраняя при этом объективные условия сделки (авто, даты, суммы),
+ * которые от профиля не зависят.
  */
-function renderContractHtml(booking) {
-    const ownerName = (0, displayName_1.displayName)(booking.owner_full_name, booking.owner_first_name);
-    const renterName = (0, displayName_1.displayName)(booking.renter_full_name, booking.renter_first_name);
+function renderContractHtml(booking, variant = 'filled') {
+    const ownerName = variant === 'blank' ? '' : (0, displayName_1.displayName)(booking.owner_full_name, booking.owner_first_name);
+    const renterName = variant === 'blank' ? '' : (0, displayName_1.displayName)(booking.renter_full_name, booking.renter_first_name);
+    const ownerPhone = variant === 'blank' ? null : booking.owner_phone;
+    const renterPhone = variant === 'blank' ? null : booking.renter_phone;
     const days = (0, dateFormat_1.rentalDays)(booking.date_from, booking.date_to);
     const contractNumber = String(booking.id).padStart(6, '0');
     const today = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -55,19 +66,20 @@ function renderContractHtml(booking) {
   <div class="no-print"><button onclick="window.print()">🖨 Печать / сохранить как PDF</button></div>
 
   <h1>ДОГОВОР АРЕНДЫ ТРАНСПОРТНОГО СРЕДСТВА БЕЗ ЭКИПАЖА № ${esc(contractNumber)}</h1>
+  ${variant === 'blank' ? '<p style="text-align:center;color:#555;font-size:12px;">Чистый бланк — ФИО и телефоны сторон впишите от руки по документам при личной встрече.</p>' : ''}
   <div class="meta">
     <span>г. ${blank(20)}</span>
     <span>«${esc(today)}»</span>
   </div>
 
-  <p class="party"><b>Арендодатель:</b> ФИО ${esc(ownerName)}${booking.owner_username ? ` (@${esc(booking.owner_username)})` : ''},<br/>
+  <p class="party"><b>Арендодатель:</b> ФИО ${ownerName ? esc(ownerName) : blank(30)}${variant === 'filled' && booking.owner_username ? ` (@${esc(booking.owner_username)})` : ''},<br/>
   Паспорт: серия ${blank(8)} № ${blank(10)}, выдан ${blank(40)},<br/>
-  Телефон: ${esc(booking.owner_phone) || blank(20)}, Адрес: ${blank(50)}, с одной стороны, и</p>
+  Телефон: ${ownerPhone ? esc(ownerPhone) : blank(20)}, Адрес: ${blank(50)}, с одной стороны, и</p>
 
-  <p class="party"><b>Арендатор:</b> ФИО ${esc(renterName)}${booking.renter_username ? ` (@${esc(booking.renter_username)})` : ''},<br/>
+  <p class="party"><b>Арендатор:</b> ФИО ${renterName ? esc(renterName) : blank(30)}${variant === 'filled' && booking.renter_username ? ` (@${esc(booking.renter_username)})` : ''},<br/>
   Паспорт: серия ${blank(8)} № ${blank(10)}, выдан ${blank(40)},<br/>
   Водительское удостоверение: серия ${blank(8)} № ${blank(10)}, выдано ${blank(30)},<br/>
-  Телефон: ${esc(booking.renter_phone) || blank(20)}, Адрес: ${blank(50)}, с другой стороны, заключили настоящий Договор:</p>
+  Телефон: ${renterPhone ? esc(renterPhone) : blank(20)}, Адрес: ${blank(50)}, с другой стороны, заключили настоящий Договор:</p>
 
   <h2>1. ПРЕДМЕТ ДОГОВОРА</h2>
   <p>1.1. Арендодатель передает, а Арендатор принимает во временное владение и пользование без экипажа автомобиль:<br/>
