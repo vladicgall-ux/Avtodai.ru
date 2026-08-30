@@ -255,8 +255,8 @@
     'data:image/svg+xml;utf8,' +
     encodeURIComponent(
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">
-        <rect width="300" height="200" fill="#182620"/>
-        <g fill="none" stroke="#3ea86a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6">
+        <rect width="300" height="200" fill="#e4e0cd"/>
+        <g fill="none" stroke="#33472c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.55">
           <path d="M55 130 L75 90 Q85 78 100 78 L200 78 Q215 78 225 92 L245 130"/>
           <rect x="45" y="130" width="210" height="34" rx="10"/>
           <circle cx="95" cy="164" r="16"/>

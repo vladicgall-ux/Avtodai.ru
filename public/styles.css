@@ -1,28 +1,28 @@
 :root {
   /* Без этого нативные виджеты (значок и текст в <input type="date">)
      всегда рисуются в светлой схеме браузера и становятся невидимыми
-     на тёмном фоне Telegram — переопределяется из JS под тему Telegram. */
-  color-scheme: dark;
-  /* Фирменная палитра АвтоДай.рф: тёмный фон + зелёный акцент, как на
-     промо-баннере (public/promo/*.html). Внутри Telegram/MAX эти значения —
-     только фоллбэк: если платформа передала свою тему через
-     tg-theme-*/max-theme-*, app.js применяет её поверх (см. applyThemeVars) —
-     но вне Mini App (обычный браузер/PWA) tg-theme-* переменных не существует,
-     и используется ровно эта, брендовая тёмная тема, а не светло-голубая
-     дефолтная тема Telegram.
-     */
-  --bg: var(--tg-theme-bg-color, #0e1712);
-  --secondary-bg: var(--tg-theme-secondary-bg-color, #182620);
-  --text: var(--tg-theme-text-color, #eef5ef);
-  --hint: var(--tg-theme-hint-color, #8fa598);
-  --link: var(--tg-theme-link-color, #4ade80);
-  --button: var(--tg-theme-button-color, #2f9e5a);
-  --button-text: var(--tg-theme-button-text-color, #ffffff);
-  --accent: #3ea86a;
-  --accent-bright: #4ade80;
-  --border: rgba(255, 255, 255, 0.1);
-  --danger: #f2645c;
-  --success: #4ade80;
+     на тёмном фоне — переопределяется из JS под тему Telegram/MAX. */
+  color-scheme: light;
+  /* Фирменная палитра АвтоДай.рф: светло-серый фон + тёмно-зелёные панели +
+     кремовые кнопки, как на баннере (public/assets/banner.jpg). Внутри
+     Telegram/MAX эти значения — только фоллбэк: если платформа передала
+     свою тему через tg-theme-*/max-theme-*, app.js применяет её поверх
+     (см. applyThemeVars) — но вне Mini App (обычный браузер/PWA) этих
+     переменных не существует, и используется ровно эта, брендовая тема. */
+  --bg: var(--tg-theme-bg-color, #d3d5cf);
+  --secondary-bg: var(--tg-theme-secondary-bg-color, #f6f4e9);
+  --text: var(--tg-theme-text-color, #253022);
+  --hint: var(--tg-theme-hint-color, #6b715f);
+  --link: var(--tg-theme-link-color, #33472c);
+  --button: var(--tg-theme-button-color, #33472c);
+  --button-text: var(--tg-theme-button-text-color, #f2ecd8);
+  --panel: #33472c;
+  --panel-text: #f2ecd8;
+  --accent: #33472c;
+  --accent-bright: #4c6b40;
+  --border: rgba(0, 0, 0, 0.12);
+  --danger: #b3392f;
+  --success: #3d6b2f;
 }
 
 * { box-sizing: border-box; }
@@ -62,8 +62,8 @@ button, .dir-btn, .tab-btn, a.btn {
 
 .banner {
   line-height: 0;
-  box-shadow: 0 2px 14px rgba(0,0,0,0.35);
-  background: #0e1712;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  background: var(--bg);
 }
 .banner img {
   width: 100%;
