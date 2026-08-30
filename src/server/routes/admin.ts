@@ -141,7 +141,7 @@ adminRouter.post(
         res.status(400).json({ error: 'Файл повреждён или не является изображением' });
         return;
       }
-      if (!(await processUploadedImage(file.path, file.mimetype))) {
+      if (!(await processUploadedImage(file.path))) {
         fs.unlink(file.path, () => {});
         res.status(400).json({ error: 'Не удалось обработать изображение — попробуйте другой файл' });
         return;

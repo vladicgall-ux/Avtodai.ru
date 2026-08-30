@@ -21,11 +21,13 @@ const carPhotoStorage = multer.diskStorage({
   filename: (req, file, cb) => {
     // Middleware order guarantees requireAuth ran first, so req.user is set.
     const ownerId = (req as unknown as AuthedRequest).user.telegram_id;
-    const ext = ALLOWED_TYPES[file.mimetype] ?? '.jpg';
+    // Расширение всегда .webp независимо от формата, в котором прислал
+    // клиент — processUploadedImage() ниже перекодирует любой принятый
+    // формат (JPEG/PNG/WebP) в WebP, так что на диске всегда лежит WebP.
     // crypto-random суффикс — без него параллельная загрузка двух фото одним
     // владельцем в один и тот же миллисекунд перезаписала бы файл друг друга.
     const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    cb(null, `car-${ownerId}-${unique}${ext}`);
+    cb(null, `car-${ownerId}-${unique}.webp`);
   },
 });
 
@@ -43,10 +45,9 @@ export const uploadCarPhoto = multer({
 
 const broadcastStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename: (_req, file, cb) => {
-    const ext = ALLOWED_TYPES[file.mimetype] ?? '.jpg';
+  filename: (_req, _file, cb) => {
     const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    cb(null, `broadcast-${unique}${ext}`);
+    cb(null, `broadcast-${unique}.webp`);
   },
 });
 
@@ -98,32 +99,66 @@ export function isValidImageFile(filePath: string): boolean {
 const MAX_IMAGE_DIMENSION = 5000;
 const MAX_IMAGE_PIXELS = 20_000_000;
 
+// Бюджет сжатия «на лету»: любое принятое фото (JPEG/PNG/WebP) перекодируется
+// в WebP и укладывается в этот бюджет размера — карточки объявлений грузятся
+// быстро даже на мобильном интернете, а сотни фото не раздувают диск хостинга.
+const OUTPUT_MAX_DIMENSION = 1600; // px по длинной стороне — с запасом для карточек и полноэкранного просмотра
+const OUTPUT_TARGET_BYTES = 150 * 1024; // целимся сюда с запасом...
+const OUTPUT_MAX_BYTES = 200 * 1024; // ...чтобы почти никогда не упереться в этот жёсткий потолок
+const MIN_QUALITY = 35; // ниже — уже заметные артефакты сжатия, не стоит того
+
 /**
  * Небольшой файл может быть JPEG/PNG-«бомбой» — валидные магические байты,
  * но при декодировании разворачивается в изображение в десятки тысяч
  * пикселей по стороне, съедая всю память процесса (image bomb). sharp с
  * limitInputPixels откажется декодировать такое ещё на этапе чтения
- * заголовка, не выделяя память под сам пиксельный буфер. Заодно
- * перекодируем файл — это убирает любые встроенные данные оригинала (EXIF
- * с геолокацией съёмки и т.п.), которые не проходят через декодер как
- * обычные пиксели, и заодно любой полиглот-контент, спрятанный после
+ * заголовка, не выделяя память под сам пиксельный буфер.
+ *
+ * Дальше файл всегда перекодируется в WebP с постепенным снижением качества
+ * (и, если этого не хватает, — разрешения) до попадания в бюджет
+ * ~150–200 КБ. Заодно это убирает любые встроенные данные оригинала (EXIF
+ * с геолокацией съёмки и т.п.) и любой полиглот-контент, спрятанный после
  * валидных данных изображения. Возвращает false, если файл не удалось
  * безопасно обработать — тогда вызывающий код должен удалить файл и
  * отклонить запрос.
  */
-export async function processUploadedImage(filePath: string, mimetype: string): Promise<boolean> {
+export async function processUploadedImage(filePath: string): Promise<boolean> {
   try {
     const probe = sharp(filePath, { limitInputPixels: MAX_IMAGE_PIXELS, failOn: 'error' });
     const metadata = await probe.metadata();
     if (!metadata.width || !metadata.height) return false;
     if (metadata.width > MAX_IMAGE_DIMENSION || metadata.height > MAX_IMAGE_DIMENSION) return false;
 
-    let pipeline = sharp(filePath, { limitInputPixels: MAX_IMAGE_PIXELS }).rotate();
-    if (mimetype === 'image/png') pipeline = pipeline.png();
-    else if (mimetype === 'image/webp') pipeline = pipeline.webp();
-    else pipeline = pipeline.jpeg();
+    let width = metadata.width;
+    let height = metadata.height;
+    const longSide = Math.max(width, height);
+    if (longSide > OUTPUT_MAX_DIMENSION) {
+      const scale = OUTPUT_MAX_DIMENSION / longSide;
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+    }
 
-    const buffer = await pipeline.toBuffer();
+    let buffer: Buffer | undefined;
+    let quality = 80;
+    // До 8 попыток: сначала снижаем качество шагом 10 до MIN_QUALITY,
+    // затем (если и этого мало — очень «шумное»/крупное фото) начинаем
+    // дополнительно уменьшать разрешение на 15% за попытку.
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      buffer = await sharp(filePath, { limitInputPixels: MAX_IMAGE_PIXELS })
+        .rotate()
+        .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality })
+        .toBuffer();
+      if (buffer.length <= OUTPUT_TARGET_BYTES) break;
+      if (quality > MIN_QUALITY) {
+        quality -= 10;
+      } else {
+        width = Math.round(width * 0.85);
+        height = Math.round(height * 0.85);
+      }
+    }
+    if (!buffer || buffer.length > OUTPUT_MAX_BYTES) return false;
+
     fs.writeFileSync(filePath, buffer);
     return true;
   } catch {

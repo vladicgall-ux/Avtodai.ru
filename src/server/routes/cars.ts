@@ -230,7 +230,7 @@ carsRouter.post(
       // Каждый файл валидируется независимо — плохой файл в середине пакета
       // не должен приводить к тому, что уже проверенные соседние файлы
       // тоже отбрасываются.
-      if (!isValidImageFile(file.path) || !(await processUploadedImage(file.path, file.mimetype))) {
+      if (!isValidImageFile(file.path) || !(await processUploadedImage(file.path))) {
         fs.unlink(file.path, () => {});
         continue;
       }
