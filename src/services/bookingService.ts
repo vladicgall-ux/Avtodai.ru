@@ -100,6 +100,26 @@ export const cancelBooking = db.transaction((bookingId: number, renterId: number
   return { ...booking, status: 'cancelled' };
 });
 
+/**
+ * Владелец отменяет уже подтверждённую бронь — например, машина сломалась
+ * или недоступна по другой причине. Только 'confirmed': отмена 'pending'
+ * брони владельцем — это declineBooking (другая семантика для арендатора).
+ */
+export const cancelBookingByOwner = db.transaction((bookingId: number, ownerId: number, reason?: string): BookingRecord => {
+  const booking = getBooking(bookingId);
+  if (!booking || booking.status !== 'confirmed') {
+    throw new BookingError('Бронирование не найдено или уже обработано');
+  }
+  const listing = getListing(booking.listing_id);
+  if (!listing || listing.owner_id !== ownerId) {
+    throw new BookingError('Это не ваш автомобиль');
+  }
+  db.prepare(
+    `UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), cancellation_reason = ? WHERE id = ?`
+  ).run(reason ?? null, bookingId);
+  return { ...booking, status: 'cancelled' };
+});
+
 /** Владелец подтверждает бронь — только для своих объявлений и только из статуса 'pending'. */
 export function confirmBooking(bookingId: number, ownerId: number): BookingRecord {
   const booking = getBooking(bookingId);

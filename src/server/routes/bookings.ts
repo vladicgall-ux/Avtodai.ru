@@ -4,6 +4,7 @@ import { writeLimiter } from '../middleware/rateLimit';
 import {
   createBooking,
   cancelBooking,
+  cancelBookingByOwner,
   listBookingsByRenter,
   listBookingsByOwner,
   confirmBooking,
@@ -113,6 +114,37 @@ bookingsRouter.post('/:id/cancel', async (req, res) => {
         await notifyUser(
           owner,
           `❌ Арендатор (${platformLabel(user.platform)}) отменил бронь на ${full.brand} ${full.model} (${formatDate(full.date_from)} — ${formatDate(full.date_to)}).${reason ? `\nПричина: ${reason}` : ''}`
+        );
+      }
+    }
+    res.json({ booking });
+  } catch (err) {
+    if (err instanceof BookingError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
+});
+
+/** Владелец отменяет уже подтверждённую бронь (например, машина сломалась) — арендатор получает уведомление; расчёты между сторонами (возврат средств) сервис не проводит. */
+bookingsRouter.post('/:id/cancel-owner', async (req, res) => {
+  const { user } = req as unknown as AuthedRequest;
+  const bookingId = parseId(req.params.id);
+  if (!bookingId) {
+    res.status(400).json({ error: 'Некорректный ID' });
+    return;
+  }
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 300) : undefined;
+  try {
+    const booking = cancelBookingByOwner(bookingId, user.telegram_id, reason);
+    const full = getBookingWithPeople(booking.id);
+    if (full) {
+      const renter = getUser(full.renter_id);
+      if (renter) {
+        await notifyUser(
+          renter,
+          `❌ Владелец отменил подтверждённую бронь на ${full.brand} ${full.model} (${formatDate(full.date_from)} — ${formatDate(full.date_to)}).${reason ? `\nПричина: ${reason}` : ''}`
         );
       }
     }

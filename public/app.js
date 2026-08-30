@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '21';
+  const APP_VERSION = '22';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -1498,6 +1498,9 @@
           <button type="button" class="btn small confirm-booking-btn" data-booking-id="${booking.id}">Подтвердить</button>
           <button type="button" class="btn secondary small decline-booking-btn" data-booking-id="${booking.id}">Отклонить</button>
         ` : ''}
+        ${booking.status === 'confirmed' && !rentalOver ? `
+          <button type="button" class="btn secondary small cancel-booking-owner-btn" data-booking-id="${booking.id}">Отменить бронь (авто недоступно)</button>
+        ` : ''}
         ${contractButtonHtml(booking)}
         ${rateBlock}
       </div>`;
@@ -1651,6 +1654,7 @@
   function attachBookingListHandlers(listId, asOwner) {
     document.getElementById(listId).addEventListener('click', async (e) => {
       const cancelBtn = e.target.closest('.cancel-booking-btn');
+      const cancelOwnerBtn = e.target.closest('.cancel-booking-owner-btn');
       const confirmBtn = e.target.closest('.confirm-booking-btn');
       const declineBtn = e.target.closest('.decline-booking-btn');
       const contractBtn = e.target.closest('.contract-btn');
@@ -1663,6 +1667,16 @@
         try {
           await apiFetch(`/bookings/${cancelBtn.dataset.bookingId}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) });
           toast('Бронирование отменено');
+          loadBookingsTab();
+        } catch (err) { toast(err.message); }
+        return;
+      }
+      if (cancelOwnerBtn) {
+        const reason = await askConfirmWithReason('Отменить уже подтверждённую бронь? Арендатор получит уведомление.', 'Отменить бронь');
+        if (reason === null) return;
+        try {
+          await apiFetch(`/bookings/${cancelOwnerBtn.dataset.bookingId}/cancel-owner`, { method: 'POST', body: JSON.stringify({ reason }) });
+          toast('Бронь отменена, арендатор уведомлён');
           loadBookingsTab();
         } catch (err) { toast(err.message); }
         return;

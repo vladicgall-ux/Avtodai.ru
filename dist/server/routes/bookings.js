@@ -99,6 +99,34 @@ exports.bookingsRouter.post('/:id/cancel', async (req, res) => {
         throw err;
     }
 });
+/** Владелец отменяет уже подтверждённую бронь (например, машина сломалась) — арендатор получает уведомление; расчёты между сторонами (возврат средств) сервис не проводит. */
+exports.bookingsRouter.post('/:id/cancel-owner', async (req, res) => {
+    const { user } = req;
+    const bookingId = (0, parseId_1.parseId)(req.params.id);
+    if (!bookingId) {
+        res.status(400).json({ error: 'Некорректный ID' });
+        return;
+    }
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 300) : undefined;
+    try {
+        const booking = (0, bookingService_1.cancelBookingByOwner)(bookingId, user.telegram_id, reason);
+        const full = (0, bookingService_1.getBookingWithPeople)(booking.id);
+        if (full) {
+            const renter = (0, userService_1.getUser)(full.renter_id);
+            if (renter) {
+                await (0, notifier_1.notifyUser)(renter, `❌ Владелец отменил подтверждённую бронь на ${full.brand} ${full.model} (${(0, dateFormat_1.formatDate)(full.date_from)} — ${(0, dateFormat_1.formatDate)(full.date_to)}).${reason ? `\nПричина: ${reason}` : ''}`);
+            }
+        }
+        res.json({ booking });
+    }
+    catch (err) {
+        if (err instanceof bookingService_1.BookingError) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+        throw err;
+    }
+});
 /** Владелец подтверждает бронь на своё объявление. */
 exports.bookingsRouter.post('/:id/confirm', async (req, res) => {
     const { user } = req;

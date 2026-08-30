@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sweepExpiredBookings = exports.cancelBooking = exports.createBooking = exports.BookingError = void 0;
+exports.sweepExpiredBookings = exports.cancelBookingByOwner = exports.cancelBooking = exports.createBooking = exports.BookingError = void 0;
 exports.getBooking = getBooking;
 exports.getBookedRanges = getBookedRanges;
 exports.confirmBooking = confirmBooking;
@@ -71,6 +71,23 @@ exports.cancelBooking = db_1.db.transaction((bookingId, renterId, reason) => {
         .get(bookingId, renterId);
     if (!booking || (booking.status !== 'confirmed' && booking.status !== 'pending')) {
         throw new BookingError('Бронирование не найдено');
+    }
+    db_1.db.prepare(`UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), cancellation_reason = ? WHERE id = ?`).run(reason ?? null, bookingId);
+    return { ...booking, status: 'cancelled' };
+});
+/**
+ * Владелец отменяет уже подтверждённую бронь — например, машина сломалась
+ * или недоступна по другой причине. Только 'confirmed': отмена 'pending'
+ * брони владельцем — это declineBooking (другая семантика для арендатора).
+ */
+exports.cancelBookingByOwner = db_1.db.transaction((bookingId, ownerId, reason) => {
+    const booking = getBooking(bookingId);
+    if (!booking || booking.status !== 'confirmed') {
+        throw new BookingError('Бронирование не найдено или уже обработано');
+    }
+    const listing = (0, carService_1.getListing)(booking.listing_id);
+    if (!listing || listing.owner_id !== ownerId) {
+        throw new BookingError('Это не ваш автомобиль');
     }
     db_1.db.prepare(`UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), cancellation_reason = ? WHERE id = ?`).run(reason ?? null, bookingId);
     return { ...booking, status: 'cancelled' };
