@@ -303,7 +303,14 @@ carsRouter.post('/:id/pause', setStatus('paused'));
 carsRouter.post('/:id/activate', setStatus('active'));
 carsRouter.post('/:id/delete', setStatus('deleted'));
 
-/** Список закрытых владельцем периодов (с ID — для управления в панели «Мои объявления»). */
+/**
+ * Все занятые периоды объявления для панели владельца «Мои объявления» —
+ * и подтверждённые/ожидающие брони (kind: 'booking', снять нельзя — это
+ * обязательство перед арендатором), и вручную закрытые владельцем даты
+ * (kind: 'blocked', с id для удаления). Раньше отдавались только закрытые
+ * вручную даты, из-за чего подтверждённая бронь клиента не показывалась
+ * в этой панели вовсе — выглядело так, будто она нигде не учтена.
+ */
 carsRouter.get('/:id/blocked-dates', (req, res) => {
   const { user } = req as unknown as AuthedRequest;
   const listingId = parseId(req.params.id);
@@ -316,7 +323,19 @@ carsRouter.get('/:id/blocked-dates', (req, res) => {
     res.status(403).json({ error: 'Это не ваше объявление' });
     return;
   }
-  res.json({ ranges: listBlockedRanges(listingId) });
+  const bookings = getBookedRanges(listingId).map((r) => ({
+    kind: 'booking' as const,
+    dateFrom: r.dateFrom,
+    dateTo: r.dateTo,
+  }));
+  const blocked = listBlockedRanges(listingId).map((b) => ({
+    kind: 'blocked' as const,
+    id: b.id,
+    dateFrom: b.date_from,
+    dateTo: b.date_to,
+  }));
+  const ranges = [...bookings, ...blocked].sort((a, b) => a.dateFrom.localeCompare(b.dateFrom));
+  res.json({ ranges });
 });
 
 /** Владелец закрывает даты своего объявления от бронирования (например, сам будет пользоваться машиной). */

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '17';
+  const APP_VERSION = '18';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -1057,12 +1057,15 @@
   function datesPanelContent(listingId, ranges) {
     const list = ranges.length
       ? `<ul class="blocked-dates-list">${ranges
-          .map(
-            (r) =>
-              `<li>${formatDate(r.date_from)} — ${formatDate(r.date_to)} <button type="button" class="btn secondary small date-range-delete-btn" data-listing-id="${listingId}" data-range-id="${r.id}">✕</button></li>`
-          )
+          .map((r) => {
+            const label = formatDate(r.dateFrom) + ' — ' + formatDate(r.dateTo);
+            if (r.kind === 'booking') {
+              return `<li>${label} <span class="badge ok">бронь</span></li>`;
+            }
+            return `<li>${label} <button type="button" class="btn secondary small date-range-delete-btn" data-listing-id="${listingId}" data-range-id="${r.id}">✕</button></li>`;
+          })
           .join('')}</ul>`
-      : '<p class="empty" style="padding:4px;">Закрытых дат нет — авто считается свободным на все даты, кроме уже забронированных.</p>';
+      : '<p class="empty" style="padding:4px;">Занятых дат нет — авто свободно на все даты.</p>';
     return `
       ${list}
       <label>Дата с<input type="date" class="date-range-from" data-listing-id="${listingId}" /></label>
