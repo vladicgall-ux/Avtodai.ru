@@ -94,7 +94,7 @@
       </div>
       <div class="search-filters">
         <input type="text" id="searchBrand" list="carBrandList" placeholder="Марка" maxlength="60" />
-        <input type="text" id="searchModel" placeholder="Модель" maxlength="60" />
+        <input type="text" id="searchModel" list="carModelList" placeholder="Модель" maxlength="60" />
       </div>
       <div class="search-filters">
         <input type="number" id="searchMinPrice" placeholder="Цена от, ₽" min="0" />
@@ -134,7 +134,7 @@
           <input type="text" id="carBrand" list="carBrandList" placeholder="Например, Kia" required maxlength="60" />
         </label>
         <label>Модель
-          <input type="text" id="carModel" placeholder="Rio" required maxlength="60" />
+          <input type="text" id="carModel" list="carModelList" placeholder="Rio" required maxlength="60" />
         </label>
         <label>Год выпуска
           <input type="number" id="carYear" min="1970" max="2027" required />
@@ -378,6 +378,95 @@
     <option value="ORA"></option>
   </datalist>
 
+  <datalist id="carModelList">
+    <option value="Vesta"></option>
+    <option value="Granta"></option>
+    <option value="Largus"></option>
+    <option value="Niva"></option>
+    <option value="XRAY"></option>
+    <option value="Camry"></option>
+    <option value="Corolla"></option>
+    <option value="RAV4"></option>
+    <option value="Land Cruiser"></option>
+    <option value="Land Cruiser Prado"></option>
+    <option value="Hilux"></option>
+    <option value="C-HR"></option>
+    <option value="Rio"></option>
+    <option value="Optima"></option>
+    <option value="Sportage"></option>
+    <option value="Cerato"></option>
+    <option value="Sorento"></option>
+    <option value="Soul"></option>
+    <option value="K5"></option>
+    <option value="Solaris"></option>
+    <option value="Creta"></option>
+    <option value="Santa Fe"></option>
+    <option value="Tucson"></option>
+    <option value="Elantra"></option>
+    <option value="Accent"></option>
+    <option value="Polo"></option>
+    <option value="Tiguan"></option>
+    <option value="Passat"></option>
+    <option value="Jetta"></option>
+    <option value="Golf"></option>
+    <option value="Touareg"></option>
+    <option value="Duster"></option>
+    <option value="Logan"></option>
+    <option value="Sandero"></option>
+    <option value="Arkana"></option>
+    <option value="Kaptur"></option>
+    <option value="Qashqai"></option>
+    <option value="X-Trail"></option>
+    <option value="Almera"></option>
+    <option value="Terrano"></option>
+    <option value="Murano"></option>
+    <option value="Focus"></option>
+    <option value="Fiesta"></option>
+    <option value="Kuga"></option>
+    <option value="Explorer"></option>
+    <option value="Octavia"></option>
+    <option value="Rapid"></option>
+    <option value="Kodiaq"></option>
+    <option value="Karoq"></option>
+    <option value="Outlander"></option>
+    <option value="Lancer"></option>
+    <option value="ASX"></option>
+    <option value="Pajero Sport"></option>
+    <option value="CX-5"></option>
+    <option value="CX-3"></option>
+    <option value="3"></option>
+    <option value="6"></option>
+    <option value="CR-V"></option>
+    <option value="Civic"></option>
+    <option value="Accord"></option>
+    <option value="Pilot"></option>
+    <option value="Forester"></option>
+    <option value="Outback"></option>
+    <option value="Impreza"></option>
+    <option value="XV"></option>
+    <option value="X5"></option>
+    <option value="X3"></option>
+    <option value="3 серии"></option>
+    <option value="5 серии"></option>
+    <option value="E-Class"></option>
+    <option value="C-Class"></option>
+    <option value="GLC"></option>
+    <option value="GLE"></option>
+    <option value="A4"></option>
+    <option value="A6"></option>
+    <option value="Q5"></option>
+    <option value="Q7"></option>
+    <option value="Tiggo 7"></option>
+    <option value="Tiggo 8"></option>
+    <option value="Tiggo 4"></option>
+    <option value="Jolion"></option>
+    <option value="F7"></option>
+    <option value="H6"></option>
+    <option value="M6"></option>
+    <option value="Coolray"></option>
+    <option value="Atlas"></option>
+  </datalist>
+
   <nav class="tabbar" id="tabbar" hidden>
     <button class="tab-btn active" data-tab="search">🔎<span>Поиск</span></button>
     <button class="tab-btn" data-tab="lend">🔑<span>Сдать авто</span></button>
@@ -386,6 +475,6 @@
     <button class="tab-btn" data-tab="admin" id="adminTabBtn" hidden>🛠<span>Админ</span></button>
   </nav>
 
-  <script src="app.js?v=13" defer></script>
+  <script src="app.js?v=14" defer></script>
 </body>
 </html>
