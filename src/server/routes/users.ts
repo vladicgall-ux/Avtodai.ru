@@ -21,10 +21,13 @@ usersRouter.get('/me', (req, res) => {
 });
 
 /**
- * Сохраняет настоящее имя и фамилию — не через requireActiveUser, потому что
- * именно отсутствие full_name и есть та проверка, которую этот запрос должен
- * снять (иначе получился бы замкнутый круг). Телефон всё равно обязателен —
- * имя вводят уже после подтверждения номера.
+ * Сохраняет ФИО (фамилия, имя, отчество) — не через requireActiveUser,
+ * потому что именно отсутствие full_name и есть та проверка, которую этот
+ * запрос должен снять (иначе получился бы замкнутый круг). Телефон всё
+ * равно обязателен — ФИО вводят уже после подтверждения номера. Обязательны
+ * все три слова: сервис требует полное ФИО до того, как пользователь сможет
+ * что-либо делать (см. app.js::boot(), гейт 'name' показывается сразу при
+ * запуске, если full_name пуст).
  */
 usersRouter.post('/me/name', writeLimiter(10, 10 * 60_000), (req, res) => {
   const { user } = req as AuthedRequest;
@@ -37,8 +40,8 @@ usersRouter.post('/me/name', writeLimiter(10, 10 * 60_000), (req, res) => {
     return;
   }
   const fullName = typeof req.body?.fullName === 'string' ? req.body.fullName.trim().replace(/\s+/g, ' ') : '';
-  if (fullName.length < 3 || fullName.length > 100 || !fullName.includes(' ')) {
-    res.status(400).json({ error: 'Укажите имя и фамилию через пробел' });
+  if (fullName.length > 100 || fullName.split(' ').length < 3) {
+    res.status(400).json({ error: 'Укажите фамилию, имя и отчество через пробел' });
     return;
   }
   setFullName(user.telegram_id, fullName);

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '4';
+  const APP_VERSION = '5';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -275,15 +275,29 @@
     }).join('')}</div>`;
   }
 
-  // ---------- Cities datalist ----------
+  // ---------- Cities dropdowns ----------
   async function loadCities() {
     try {
       const { cities } = await apiFetch('/cities');
       state.cities = cities;
-      const list = document.getElementById('cityList');
-      list.innerHTML = cities.map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.region || '')}</option>`).join('');
+      const options = cities
+        .map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}${c.region ? ' — ' + escapeHtml(c.region) : ''}</option>`)
+        .join('');
+
+      const searchSelect = document.getElementById('searchCity');
+      const currentSearchValue = searchSelect.value;
+      searchSelect.innerHTML = '<option value="">Город: любой</option>' + options;
+      searchSelect.value = currentSearchValue;
+
+      const carCitySelect = document.getElementById('carCity');
+      const currentCarValue = carCitySelect.value;
+      carCitySelect.innerHTML = '<option value="" disabled' + (currentCarValue ? '' : ' selected') + '>Выберите город</option>' + options;
+      carCitySelect.value = currentCarValue;
     } catch (err) {
-      // Non-critical for boot — search/lend forms still work without autocomplete.
+      // Список городов не загрузился (например, разрыв сети при старте) —
+      // не критично для загрузки самого приложения, но фильтр/форма
+      // временно останутся с одним пунктом-заглушкой; повторная загрузка
+      // происходит при каждом заходе на вкладки "Поиск"/"Сдать авто".
     }
   }
 
@@ -398,8 +412,8 @@
         actionBtn.textContent = 'Открыть чат с ботом';
       }
     } else if (kind === 'name') {
-      title.textContent = 'Укажите имя и фамилию';
-      text.textContent = 'Это нужно для договора аренды и общения с контрагентом.';
+      title.textContent = 'Укажите ФИО';
+      text.textContent = 'Фамилия, имя и отчество — это нужно для договора аренды и общения с контрагентом. Без этого сервис недоступен.';
       nameForm.hidden = false;
     }
   }
@@ -414,9 +428,9 @@
   document.getElementById('gateActionBtn').addEventListener('click', openBotChat);
   document.getElementById('gateNameSubmitBtn').addEventListener('click', async () => {
     const input = document.getElementById('gateNameInput');
-    const fullName = input.value.trim();
-    if (fullName.length < 3 || !fullName.includes(' ')) {
-      toast('Укажите имя и фамилию через пробел');
+    const fullName = input.value.trim().replace(/\s+/g, ' ');
+    if (fullName.split(' ').length < 3) {
+      toast('Укажите фамилию, имя и отчество через пробел');
       return;
     }
     try {
@@ -737,13 +751,20 @@
     };
     const form = e.target;
     await withAgreementGate(async () => {
-      await apiFetch('/cars', { method: 'POST', body: JSON.stringify(payload) });
-      toast('Объявление опубликовано! Теперь добавьте фото.');
+      const { listing } = await apiFetch('/cars', { method: 'POST', body: JSON.stringify(payload) });
+      toast('Объявление опубликовано! Добавьте фото ниже.');
       form.reset();
       document.getElementById('carSeats').value = 5;
       document.getElementById('carMinRentalDays').value = 1;
       document.getElementById('carDeposit').value = 0;
-      loadMyListings();
+      await loadMyListings();
+      // Сразу открываем панель загрузки фото для только что созданного
+      // объявления и прокручиваем к ней — иначе пользователь не понимает,
+      // где добавить фото, и уходит с пустым объявлением (см. жалобу
+      // "нет пункта добавить фото" во вкладке создания).
+      const toggleBtn = document.querySelector(`.photos-toggle-btn[data-listing-id="${listing.id}"]`);
+      toggleBtn?.click();
+      toggleBtn?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   });
 
@@ -754,7 +775,7 @@
         ? `<button type="button" class="btn secondary small pause-listing-btn" data-listing-id="${listing.id}">Приостановить</button>`
         : `<button type="button" class="btn small activate-listing-btn" data-listing-id="${listing.id}">Активировать</button>`}
       <button type="button" class="btn secondary small delete-listing-btn" data-listing-id="${listing.id}">Удалить</button>
-      <button type="button" class="btn small photos-toggle-btn" data-listing-id="${listing.id}">📷 Фото</button>
+      <button type="button" class="btn small photos-toggle-btn" data-listing-id="${listing.id}">📷 Добавить фото</button>
     `;
     return `
       <div class="card car-card">
