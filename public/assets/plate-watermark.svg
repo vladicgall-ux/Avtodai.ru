@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 112">
+  <rect x="2" y="2" width="516" height="108" rx="10" fill="#ffffff" stroke="#33472c" stroke-width="5"/>
+  <text x="228" y="72" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="46" fill="#33472c">АВТОДАЙ.РФ</text>
+  <rect x="452" y="10" width="58" height="92" rx="6" fill="#33472c"/>
+  <text x="481" y="46" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="16" fill="#ffffff">RUS</text>
+  <rect x="460" y="56" width="42" height="8" fill="#ffffff"/>
+  <rect x="460" y="68" width="42" height="8" fill="#1a3fa0"/>
+  <rect x="460" y="80" width="42" height="8" fill="#d52b1e"/>
+</svg>

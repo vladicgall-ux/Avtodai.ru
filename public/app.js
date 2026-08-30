@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '19';
+  const APP_VERSION = '20';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -190,11 +190,135 @@
     box.appendChild(content);
     overlay.appendChild(box);
     function close() { overlay.remove(); }
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-    closeBtn.addEventListener('click', close);
+    // Закрытие крестиком/по фону — это ещё и явный отказ пользователя,
+    // отдельный от того, что buildFn делает через переданный ей close()
+    // (например, после успешного действия) — вызывается только тут, а не
+    // из вызовов close() внутри buildFn, иначе результат уже начатого
+    // действия перезаписался бы отменой.
+    function closeAsCancel() { close(); opts.onClose?.(); }
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeAsCancel(); });
+    closeBtn.addEventListener('click', closeAsCancel);
     document.body.appendChild(overlay);
     buildFn(content, close);
     return close;
+  }
+
+  /**
+   * Перед загрузкой фото автомобиля даёт владельцу закрыть госномер рамкой,
+   * которая при подтверждении впечатывается в фото логотипом «АвтоДай.РФ»
+   * (см. public/assets/plate-watermark.svg) — автоматическое распознавание
+   * номера потребовало бы тяжёлой ML-модели, а рамка, которую подгоняет сам
+   * владелец, работает при любом ракурсе (спереди/сбоку) без этого. Если на
+   * фото номера не видно (например, чистый вид сбоку без номерного знака),
+   * можно нажать «Без номера» и оставить фото как есть.
+   *
+   * Возвращает Promise<File|null>: File — итоговый файл для загрузки
+   * (изменённый, если применили рамку, либо исходный, если пропустили),
+   * null — пользователь закрыл редактор крестиком, не выбрав ни одно из
+   * действий (тогда вызывающий код должен отменить загрузку).
+   */
+  function openPlateCoverEditor(file) {
+    return new Promise((resolve) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        let settled = false;
+        const finish = (result) => {
+          if (settled) return;
+          settled = true;
+          URL.revokeObjectURL(objectUrl);
+          resolve(result);
+        };
+        const close = openModal((content) => {
+          content.innerHTML = `
+            <h3 style="margin:6px 0;">Закройте номер на фото</h3>
+            <p class="comment">Если на фото виден госномер — передвиньте и растяните жёлтую рамку так, чтобы она полностью его закрывала, и нажмите «Замазать номер». Если номера не видно (фото сбоку/сзади без номера), нажмите «Без номера».</p>
+            <div class="plate-editor-wrap"><canvas class="plate-editor-canvas"></canvas><div class="plate-editor-box"><div class="plate-editor-resize"></div></div></div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+              <button type="button" class="btn secondary" id="plateSkipBtn">Без номера</button>
+              <button type="button" class="btn" id="plateApplyBtn">Замазать номер</button>
+            </div>
+          `;
+          const wrap = content.querySelector('.plate-editor-wrap');
+          const canvas = content.querySelector('.plate-editor-canvas');
+          const box = content.querySelector('.plate-editor-box');
+          const ctx = canvas.getContext('2d');
+
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const maxW = Math.min(360, window.innerWidth - 72);
+          const displayH = Math.round((img.naturalHeight / img.naturalWidth) * maxW);
+          wrap.style.width = `${maxW}px`;
+          wrap.style.height = `${displayH}px`;
+          ctx.drawImage(img, 0, 0);
+
+          // Рамка по умолчанию — нижняя центральная зона кадра, где чаще
+          // всего оказывается передний номер на фото машины анфас.
+          const rect = { xPct: 0.30, yPct: 0.70, wPct: 0.40, hPct: 0.14 };
+          function renderBox() {
+            box.style.left = `${rect.xPct * 100}%`;
+            box.style.top = `${rect.yPct * 100}%`;
+            box.style.width = `${rect.wPct * 100}%`;
+            box.style.height = `${rect.hPct * 100}%`;
+          }
+          renderBox();
+
+          let dragging = null;
+          function pointerPct(e) {
+            const r = wrap.getBoundingClientRect();
+            return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+          }
+          box.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            const isResize = e.target.classList.contains('plate-editor-resize');
+            const start = pointerPct(e);
+            dragging = { isResize, startX: start.x, startY: start.y, orig: { ...rect } };
+            box.setPointerCapture(e.pointerId);
+          });
+          box.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            const cur = pointerPct(e);
+            const dx = cur.x - dragging.startX;
+            const dy = cur.y - dragging.startY;
+            if (dragging.isResize) {
+              rect.wPct = Math.min(0.95 - rect.xPct, Math.max(0.08, dragging.orig.wPct + dx));
+              rect.hPct = Math.min(0.6, Math.max(0.05, dragging.orig.hPct + dy));
+            } else {
+              rect.xPct = Math.min(1 - rect.wPct, Math.max(0, dragging.orig.xPct + dx));
+              rect.yPct = Math.min(1 - rect.hPct, Math.max(0, dragging.orig.yPct + dy));
+            }
+            renderBox();
+          });
+          box.addEventListener('pointerup', () => { dragging = null; });
+
+          content.querySelector('#plateSkipBtn').addEventListener('click', () => {
+            close();
+            finish(file);
+          });
+          content.querySelector('#plateApplyBtn').addEventListener('click', () => {
+            const plateImg = new Image();
+            plateImg.onload = () => {
+              const px = rect.xPct * canvas.width;
+              const py = rect.yPct * canvas.height;
+              const pw = rect.wPct * canvas.width;
+              const ph = rect.hPct * canvas.height;
+              ctx.drawImage(plateImg, px, py, pw, ph);
+              canvas.toBlob(
+                (blob) => {
+                  close();
+                  if (!blob) { finish(file); return; }
+                  finish(new File([blob], 'plate-covered.jpg', { type: 'image/jpeg' }));
+                },
+                'image/jpeg',
+                0.92
+              );
+            };
+            plateImg.src = 'assets/plate-watermark.svg';
+          });
+        }, { wide: true, onClose: () => finish(null) });
+      };
+      img.src = objectUrl;
+    });
   }
 
   // ---------- State ----------
@@ -985,7 +1109,16 @@
       description: document.getElementById('carDescription').value.trim(),
     };
     const form = e.target;
-    const photoFile = document.getElementById('carPhotoInput').files?.[0];
+    const rawPhotoFile = document.getElementById('carPhotoInput').files?.[0];
+    // Редактор номера — чистый клиентский шаг, независимый от того, принято
+    // ли соглашение, поэтому проходит один раз до withAgreementGate, а не
+    // при каждой его попытке (withAgreementGate может повторно вызвать
+    // переданное действие после принятия соглашения в модалке).
+    const photoFile = rawPhotoFile ? await openPlateCoverEditor(rawPhotoFile) : null;
+    if (rawPhotoFile && !photoFile) {
+      toast('Публикация отменена — редактор фото был закрыт');
+      return;
+    }
     await withAgreementGate(async () => {
       const { listing } = await apiFetch('/cars', { method: 'POST', body: JSON.stringify(payload) });
 
@@ -1220,11 +1353,16 @@
         toast('Выберите файл');
         return;
       }
+      const editedFile = await openPlateCoverEditor(files[0]);
+      if (!editedFile) {
+        toast('Загрузка отменена — редактор фото был закрыт');
+        return;
+      }
       const progress = panel.querySelector('[data-progress]');
       uploadBtn.disabled = true;
       progress.textContent = 'Загрузка…';
       const formData = new FormData();
-      formData.append('photos', files[0]);
+      formData.append('photos', editedFile);
       try {
         await apiUpload(`/cars/${id}/photos`, formData);
         toast('Фото загружено');
