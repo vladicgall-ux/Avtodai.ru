@@ -63,35 +63,23 @@ button, .dir-btn, .tab-btn, a.btn {
 .banner {
   line-height: 0;
   box-shadow: 0 2px 14px rgba(0,0,0,0.35);
-  background: radial-gradient(120% 160% at 20% 0%, #1f3a2a 0%, #0e1712 65%);
-  padding: 14px 0 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  background: #0e1712;
 }
 .banner img {
-  height: 44px;
-  width: 44px;
+  width: 100%;
+  height: auto;
   display: block;
-}
-.banner .wordmark {
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  color: var(--text);
-}
-.banner .wordmark .accent {
-  color: var(--accent-bright);
 }
 
 .gate-screen {
-  min-height: calc(100vh - 60px);
+  min-height: calc(100vh - 150px);
   /* 100vh на iOS Safari считает область за адресной строкой, из-за чего
      контент обрезается/скачет при её появлении-исчезновении — dvh учитывает
      реальную видимую высоту. Строка ниже переопределяет предыдущую там, где
-     dvh поддерживается, и просто игнорируется там, где нет. */
-  min-height: calc(100dvh - 60px);
+     dvh поддерживается, и просто игнорируется там, где нет.
+     150px — примерная высота полноширинного баннера (public/assets/banner.jpg)
+     на типичном мобильном экране, чтобы гейт-экран не выглядел смещённым. */
+  min-height: calc(100dvh - 150px);
   display: flex;
   align-items: center;
   justify-content: center;
