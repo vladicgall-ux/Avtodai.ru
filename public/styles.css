@@ -224,6 +224,10 @@ button, .dir-btn, .tab-btn, a.btn {
   object-fit: cover;
   scroll-snap-align: start;
   background: var(--bg);
+  cursor: pointer;
+}
+.car-photo.no-photo {
+  cursor: default;
 }
 .photo-carousel.single .car-photo {
   width: 100%;
@@ -236,6 +240,7 @@ button, .dir-btn, .tab-btn, a.btn {
   object-fit: cover;
   flex: 0 0 auto;
   background: var(--bg);
+  cursor: pointer;
 }
 .photo-thumbs {
   display: flex;

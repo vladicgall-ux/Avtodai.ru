@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '9';
+  const APP_VERSION = '10';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -632,7 +632,12 @@
 
   document.body.addEventListener('click', (e) => {
     const photo = e.target.closest('.car-photo');
-    if (photo) openLightbox(photo.getAttribute('src'));
+    if (photo && !photo.classList.contains('no-photo')) {
+      openLightbox(photo.getAttribute('src'));
+      return;
+    }
+    const thumb = e.target.closest('.car-photo-thumb');
+    if (thumb) openLightbox(thumb.getAttribute('data-full') || thumb.getAttribute('src'));
   });
 
   function openLightbox(src) {
