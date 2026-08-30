@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '29';
+  const APP_VERSION = '30';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -2040,8 +2040,8 @@
           <p>${escapeHtml(m.message)}</p>
           ${!m.from_admin ? `
             <div class="support-reply">
-              <input type="text" class="reply-input" data-user-id="${m.telegram_id}" maxlength="1000" placeholder="Ответ..." />
-              <button type="button" class="reply-send-btn" data-user-id="${m.telegram_id}">Отправить</button>
+              <input type="text" class="reply-input" data-user-id="${m.user_id}" maxlength="1000" placeholder="Ответ..." />
+              <button type="button" class="reply-send-btn" data-user-id="${m.user_id}">Отправить</button>
             </div>` : ''}
         </div>
       `).join('') || '<p class="empty">Сообщений пока нет.</p>';
