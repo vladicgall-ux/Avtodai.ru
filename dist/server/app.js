@@ -11,6 +11,7 @@ const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const users_1 = require("./routes/users");
 const cars_1 = require("./routes/cars");
 const bookings_1 = require("./routes/bookings");
+const contactRequests_1 = require("./routes/contactRequests");
 const admin_1 = require("./routes/admin");
 const support_1 = require("./routes/support");
 const ratings_1 = require("./routes/ratings");
@@ -90,6 +91,7 @@ function createApp() {
     app.use('/api/users', users_1.usersRouter);
     app.use('/api/cars', cars_1.carsRouter);
     app.use('/api/bookings', bookings_1.bookingsRouter);
+    app.use('/api/contact-requests', contactRequests_1.contactRequestsRouter);
     app.use('/api/admin', admin_1.adminRouter);
     app.use('/api/support', support_1.supportRouter);
     app.use('/api/ratings', ratings_1.ratingsRouter);

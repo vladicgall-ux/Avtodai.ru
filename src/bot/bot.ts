@@ -4,6 +4,12 @@ import { config } from '../config';
 import { upsertUser, setPhoneVerified, getUser } from '../services/userService';
 import { setBotInstance, notifyUser, notifyAdmins, type NotifyButton } from './notifier';
 import { confirmBooking, declineBooking, getBookingWithPeople, BookingError } from '../services/bookingService';
+import {
+  confirmContactRequest,
+  declineContactRequest,
+  getContactRequestWithPeople,
+  ContactRequestError,
+} from '../services/contactRequestService';
 import { createSupportMessage } from '../services/supportService';
 import { consumeLoginCode } from '../services/webSessionService';
 import { displayName, platformLabel } from '../utils/displayName';
@@ -208,6 +214,54 @@ export function createBot(): Telegraf {
       );
     } catch (err) {
       const message = err instanceof BookingError ? err.message : 'Не удалось отклонить бронирование';
+      await ctx.answerCbQuery(message, { show_alert: true });
+    }
+  });
+
+  bot.action(/^confirm_contact:(\d+)$/, async (ctx) => {
+    const requestId = Number(ctx.match[1]);
+    try {
+      confirmContactRequest(requestId, ctx.from.id);
+      const info = getContactRequestWithPeople(requestId)!;
+
+      const renterButtons = dialogRows('💬 Написать арендатору', info.renter_username, info.renter_platform);
+      await ctx.answerCbQuery('Контакты подтверждены!');
+      await ctx.editMessageText(
+        `✅ Вы подтвердили запрос на контакты.\n${info.brand} ${info.model} (${info.city})\n` +
+          `Арендатор (${platformLabel(info.renter_platform)}): ${displayName(info.renter_full_name, info.renter_first_name)}${info.renter_username ? ' (@' + info.renter_username + ')' : ''}\n` +
+          `Телефон: ${info.renter_phone ?? 'не указан'}`,
+        {
+          parse_mode: 'HTML',
+          ...(renterButtons ? Markup.inlineKeyboard(renterButtons) : {}),
+        }
+      );
+
+      await notifyUser(
+        getUser(info.renter_id)!,
+        `✅ Владелец подтвердил запрос!\n${info.brand} ${info.model} (${info.city})\n` +
+          `Владелец (${platformLabel(info.owner_platform)}): ${displayName(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}`
+      );
+    } catch (err) {
+      const message = err instanceof ContactRequestError ? err.message : 'Не удалось подтвердить запрос';
+      await ctx.answerCbQuery(message, { show_alert: true });
+    }
+  });
+
+  bot.action(/^decline_contact:(\d+)$/, async (ctx) => {
+    const requestId = Number(ctx.match[1]);
+    try {
+      const info = getContactRequestWithPeople(requestId)!;
+      declineContactRequest(requestId, ctx.from.id);
+
+      await ctx.answerCbQuery('Запрос отклонён');
+      await ctx.editMessageText(`❌ Вы отклонили запрос на контакты по объявлению ${info.brand} ${info.model}.`);
+
+      await notifyUser(
+        getUser(info.renter_id)!,
+        `❌ Владелец отклонил запрос на контакты по объявлению ${info.brand} ${info.model}.`
+      );
+    } catch (err) {
+      const message = err instanceof ContactRequestError ? err.message : 'Не удалось отклонить запрос';
       await ctx.answerCbQuery(message, { show_alert: true });
     }
   });

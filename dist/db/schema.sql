@@ -78,6 +78,22 @@ CREATE TABLE IF NOT EXISTS bookings (
 CREATE INDEX IF NOT EXISTS idx_bookings_listing ON bookings (listing_id, status);
 CREATE INDEX IF NOT EXISTS idx_bookings_renter ON bookings (renter_id, status);
 
+-- Запрос контактов — лёгкое действие «хочу списаться с владельцем», отдельное
+-- от бронирования (не требует выбора дат/суммы). Телефоны обеих сторон
+-- раскрываются только после того, как владелец подтвердит запрос — до этого
+-- арендатор видит только имя и рейтинг владельца в самом объявлении.
+CREATE TABLE IF NOT EXISTS contact_requests (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  listing_id    INTEGER NOT NULL REFERENCES car_listings(id),
+  renter_id     INTEGER NOT NULL REFERENCES users(telegram_id),
+  status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','confirmed','declined')),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  confirmed_at  TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_requests_listing ON contact_requests (listing_id, status);
+CREATE INDEX IF NOT EXISTS idx_contact_requests_renter ON contact_requests (renter_id, status);
+
 -- Обращения в поддержку: и из Mini App, и из обычного текстового сообщения боту.
 CREATE TABLE IF NOT EXISTS support_messages (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -6,6 +6,12 @@ import { setMaxBotInstance } from './maxNotifier';
 import { notifyAdmins, notifyUser } from './notifier';
 import { createSupportMessage } from '../services/supportService';
 import { confirmBooking, declineBooking, getBookingWithPeople, BookingError } from '../services/bookingService';
+import {
+  confirmContactRequest,
+  declineContactRequest,
+  getContactRequestWithPeople,
+  ContactRequestError,
+} from '../services/contactRequestService';
 import { displayName, platformLabel } from '../utils/displayName';
 import { formatDate } from '../utils/dateFormat';
 import { bannerPath } from './bot';
@@ -153,6 +159,56 @@ export function createMaxBot(): Bot {
       );
     } catch (err) {
       const message = err instanceof BookingError ? err.message : 'Не удалось отклонить бронирование';
+      await ctx.answerOnCallback({ notification: message });
+    }
+  });
+
+  bot.action(/^confirm_contact:(\d+)$/, async (ctx) => {
+    const requestId = Number(ctx.match![1]);
+    const ownerId = maxStorageId(ctx.callback.user.user_id);
+    try {
+      confirmContactRequest(requestId, ownerId);
+      const info = getContactRequestWithPeople(requestId)!;
+
+      await ctx.answerOnCallback({ notification: 'Контакты подтверждены!' });
+      await ctx.editMessage({
+        text:
+          `✅ Вы подтвердили запрос на контакты.\n${info.brand} ${info.model} (${info.city})\n` +
+          `Арендатор (${platformLabel(info.renter_platform)}): ${displayName(info.renter_full_name, info.renter_first_name)}${info.renter_username ? ' (@' + info.renter_username + ')' : ''}\n` +
+          `Телефон: ${info.renter_phone ?? 'не указан'}`,
+        format: 'html',
+      });
+
+      await notifyUser(
+        getUser(info.renter_id)!,
+        `✅ Владелец подтвердил запрос!\n${info.brand} ${info.model} (${info.city})\n` +
+          `Владелец (${platformLabel(info.owner_platform)}): ${displayName(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}`
+      );
+    } catch (err) {
+      const message = err instanceof ContactRequestError ? err.message : 'Не удалось подтвердить запрос';
+      await ctx.answerOnCallback({ notification: message });
+    }
+  });
+
+  bot.action(/^decline_contact:(\d+)$/, async (ctx) => {
+    const requestId = Number(ctx.match![1]);
+    const ownerId = maxStorageId(ctx.callback.user.user_id);
+    try {
+      const info = getContactRequestWithPeople(requestId)!;
+      declineContactRequest(requestId, ownerId);
+
+      await ctx.answerOnCallback({ notification: 'Запрос отклонён' });
+      await ctx.editMessage({
+        text: `❌ Вы отклонили запрос на контакты по объявлению ${info.brand} ${info.model}.`,
+        format: 'html',
+      });
+
+      await notifyUser(
+        getUser(info.renter_id)!,
+        `❌ Владелец отклонил запрос на контакты по объявлению ${info.brand} ${info.model}.`
+      );
+    } catch (err) {
+      const message = err instanceof ContactRequestError ? err.message : 'Не удалось отклонить запрос';
       await ctx.answerOnCallback({ notification: message });
     }
   });

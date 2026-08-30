@@ -7,6 +7,8 @@ exports.getListingWithExtras = getListingWithExtras;
 exports.listListingsByOwner = listListingsByOwner;
 exports.addListingPhoto = addListingPhoto;
 exports.countListingPhotos = countListingPhotos;
+exports.getListingPhoto = getListingPhoto;
+exports.deleteListingPhotoRecord = deleteListingPhotoRecord;
 exports.setListingStatus = setListingStatus;
 exports.isListingAvailable = isListingAvailable;
 const db_1 = require("../db/db");
@@ -56,10 +58,10 @@ const LISTING_WITH_EXTRAS_SELECT = `
   ) rt ON rt.owner_id = c.owner_id
 `;
 function attachPhotos(listing) {
-    const photos = db_1.db
-        .prepare('SELECT photo_path FROM car_photos WHERE listing_id = ? ORDER BY position ASC, id ASC')
-        .all(listing.id).map((r) => r.photo_path);
-    return { ...listing, photos };
+    const rows = db_1.db
+        .prepare('SELECT id, photo_path FROM car_photos WHERE listing_id = ? ORDER BY position ASC, id ASC')
+        .all(listing.id);
+    return { ...listing, photos: rows.map((r) => r.photo_path), photoIds: rows.map((r) => r.id) };
 }
 /** Активные объявления, доступные в указанный период (без пересечения с чужими confirmed/pending бронями). */
 function searchListings(filter) {
@@ -134,6 +136,12 @@ function addListingPhoto(listingId, photoPath, position) {
 function countListingPhotos(listingId) {
     const row = db_1.db.prepare('SELECT COUNT(*) AS n FROM car_photos WHERE listing_id = ?').get(listingId);
     return row.n;
+}
+function getListingPhoto(photoId) {
+    return db_1.db.prepare('SELECT * FROM car_photos WHERE id = ?').get(photoId);
+}
+function deleteListingPhotoRecord(photoId) {
+    db_1.db.prepare('DELETE FROM car_photos WHERE id = ?').run(photoId);
 }
 function setListingStatus(id, ownerId, status) {
     const info = db_1.db

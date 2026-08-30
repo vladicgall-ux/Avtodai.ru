@@ -35,6 +35,8 @@ export interface CarListingWithExtras extends CarListingRecord {
   avg_rating: number | null;
   rating_count: number;
   photos: string[];
+  /** ID фото в том же порядке, что и photos — нужен только владельцу для удаления/замены фото. */
+  photoIds: number[];
 }
 
 export interface CreateListingInput {
@@ -107,13 +109,11 @@ const LISTING_WITH_EXTRAS_SELECT = `
   ) rt ON rt.owner_id = c.owner_id
 `;
 
-function attachPhotos(listing: Omit<CarListingWithExtras, 'photos'>): CarListingWithExtras {
-  const photos = (
-    db
-      .prepare('SELECT photo_path FROM car_photos WHERE listing_id = ? ORDER BY position ASC, id ASC')
-      .all(listing.id) as { photo_path: string }[]
-  ).map((r) => r.photo_path);
-  return { ...listing, photos };
+function attachPhotos(listing: Omit<CarListingWithExtras, 'photos' | 'photoIds'>): CarListingWithExtras {
+  const rows = db
+    .prepare('SELECT id, photo_path FROM car_photos WHERE listing_id = ? ORDER BY position ASC, id ASC')
+    .all(listing.id) as { id: number; photo_path: string }[];
+  return { ...listing, photos: rows.map((r) => r.photo_path), photoIds: rows.map((r) => r.id) };
 }
 
 export interface SearchFilter {
@@ -188,13 +188,13 @@ export function searchListings(filter: SearchFilter): CarListingWithExtras[] {
           : 'c.price_per_day ASC';
 
   const sql = `${LISTING_WITH_EXTRAS_SELECT} WHERE ${clauses.join(' AND ')} ORDER BY ${orderBy}`;
-  const rows = db.prepare(sql).all(params) as Omit<CarListingWithExtras, 'photos'>[];
+  const rows = db.prepare(sql).all(params) as Omit<CarListingWithExtras, 'photos' | 'photoIds'>[];
   return rows.map(attachPhotos);
 }
 
 export function getListingWithExtras(id: number): CarListingWithExtras | undefined {
   const row = db.prepare(`${LISTING_WITH_EXTRAS_SELECT} WHERE c.id = @id`).get({ id }) as
-    | Omit<CarListingWithExtras, 'photos'>
+    | Omit<CarListingWithExtras, 'photos' | 'photoIds'>
     | undefined;
   return row ? attachPhotos(row) : undefined;
 }
@@ -218,6 +218,21 @@ export function countListingPhotos(listingId: number): number {
     n: number;
   };
   return row.n;
+}
+
+export interface CarPhotoRecord {
+  id: number;
+  listing_id: number;
+  photo_path: string;
+  position: number;
+}
+
+export function getListingPhoto(photoId: number): CarPhotoRecord | undefined {
+  return db.prepare('SELECT * FROM car_photos WHERE id = ?').get(photoId) as CarPhotoRecord | undefined;
+}
+
+export function deleteListingPhotoRecord(photoId: number): void {
+  db.prepare('DELETE FROM car_photos WHERE id = ?').run(photoId);
 }
 
 export function setListingStatus(id: number, ownerId: number, status: ListingStatus): boolean {

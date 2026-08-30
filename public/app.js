@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '6';
+  const APP_VERSION = '7';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -215,6 +215,7 @@
   const TRANSMISSION_LABELS = { manual: 'Механика', automatic: 'Автомат' };
   const FUEL_LABELS = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гибрид', electric: 'Электро', gas: 'Газ' };
   const BOOKING_STATUS_LABELS = { pending: 'ожидает подтверждения', confirmed: 'подтверждена', cancelled: 'отменена', completed: 'завершена' };
+  const CONTACT_STATUS_LABELS = { pending: 'ожидает подтверждения', confirmed: 'подтверждено', declined: 'отклонено' };
   const LISTING_STATUS_LABELS = { active: 'активно', paused: 'приостановлено', deleted: 'удалено' };
 
   function toDateStr(d) {
@@ -664,7 +665,24 @@
         return;
       }
 
+      const contactBtn = document.createElement('button');
+      contactBtn.type = 'button';
+      contactBtn.className = 'btn secondary';
+      contactBtn.style.marginTop = '4px';
+      contactBtn.textContent = '📞 Показать контакты';
+      content.appendChild(contactBtn);
+      contactBtn.addEventListener('click', async () => {
+        contactBtn.disabled = true;
+        await withAgreementGate(async () => {
+          await apiFetch('/contact-requests', { method: 'POST', body: JSON.stringify({ listingId: id }) });
+          toast('Запрос отправлен владельцу — контакты придут после подтверждения.');
+          contactBtn.textContent = '✅ Запрос отправлен';
+        });
+        if (contactBtn.textContent !== '✅ Запрос отправлен') contactBtn.disabled = false;
+      });
+
       const form = document.createElement('div');
+      form.style.marginTop = '12px';
       form.innerHTML = `
         <label>Дата с<input type="date" id="bookDateFrom" /></label>
         <label style="margin-top:8px;">Дата по<input type="date" id="bookDateTo" /></label>
@@ -806,11 +824,22 @@
     }
   }
 
-  function photosPanelContent(listingId, photos) {
-    const thumbs = (photos || []).map((p) => `<img class="car-photo-thumb" src="/uploads/${p.replace(/^\/?uploads\//, '')}" alt="" data-full="/uploads/${p.replace(/^\/?uploads\//, '')}" />`).join('');
+  // Разрешено ровно одно фото на объявление (см. server/routes/cars.ts) — чтобы
+  // заменить, сначала нужно удалить текущее, поэтому панель показывает либо
+  // фото с кнопкой удаления, либо форму загрузки, но никогда оба сразу.
+  function photosPanelContent(listingId, photos, photoIds) {
+    const hasPhoto = photos && photos.length > 0;
+    if (hasPhoto) {
+      const src = `/uploads/${photos[0].replace(/^\/?uploads\//, '')}`;
+      const photoId = (photoIds && photoIds[0]) || '';
+      return `
+        <div class="photo-thumbs"><img class="car-photo-thumb" src="${src}" alt="" data-full="${src}" /></div>
+        <button type="button" class="btn secondary small photo-delete-btn" data-listing-id="${listingId}" data-photo-id="${photoId}" style="margin-top:8px;">Удалить фото</button>
+      `;
+    }
     return `
-      <div class="photo-thumbs">${thumbs || '<span class="empty" style="padding:4px;">Фото ещё не загружены</span>'}</div>
-      <input type="file" class="photos-input" data-listing-id="${listingId}" accept="image/jpeg,image/png,image/webp" multiple />
+      <p class="empty" style="padding:4px;">Фото ещё не загружено (доступно 1 фото на объявление)</p>
+      <input type="file" class="photos-input" data-listing-id="${listingId}" accept="image/jpeg,image/png,image/webp" />
       <div class="file-thumbs" data-preview="${listingId}"></div>
       <button type="button" class="btn small photos-upload-btn" data-listing-id="${listingId}" style="margin-top:8px;">Загрузить фото</button>
       <div class="upload-progress" data-progress="${listingId}"></div>
@@ -823,6 +852,7 @@
     const deleteBtn = e.target.closest('.delete-listing-btn');
     const photosBtn = e.target.closest('.photos-toggle-btn');
     const uploadBtn = e.target.closest('.photos-upload-btn');
+    const deletePhotoBtn = e.target.closest('.photo-delete-btn');
 
     if (pauseBtn || activateBtn) {
       const id = (pauseBtn || activateBtn).dataset.listingId;
@@ -852,7 +882,7 @@
       panel.innerHTML = '<p class="empty">Загрузка...</p>';
       try {
         const { listing } = await apiFetch(`/cars/${id}`);
-        panel.innerHTML = photosPanelContent(id, listing.photos);
+        panel.innerHTML = photosPanelContent(id, listing.photos, listing.photoIds);
       } catch (err) {
         panel.innerHTML = `<p class="empty">${escapeHtml(err.message)}</p>`;
       }
@@ -864,23 +894,38 @@
       const input = panel.querySelector('.photos-input');
       const files = input?.files;
       if (!files || !files.length) {
-        toast('Выберите хотя бы один файл');
+        toast('Выберите файл');
         return;
       }
       const progress = panel.querySelector('[data-progress]');
       uploadBtn.disabled = true;
       progress.textContent = 'Загрузка…';
       const formData = new FormData();
-      Array.from(files).forEach((f) => formData.append('photos', f));
+      formData.append('photos', files[0]);
       try {
         await apiUpload(`/cars/${id}/photos`, formData);
-        toast('Фото загружены');
+        toast('Фото загружено');
         const { listing } = await apiFetch(`/cars/${id}`);
-        panel.innerHTML = photosPanelContent(id, listing.photos);
+        panel.innerHTML = photosPanelContent(id, listing.photos, listing.photoIds);
       } catch (err) {
         toast(err.message);
         progress.textContent = '';
         uploadBtn.disabled = false;
+      }
+      return;
+    }
+    if (deletePhotoBtn) {
+      const id = deletePhotoBtn.dataset.listingId;
+      const photoId = deletePhotoBtn.dataset.photoId;
+      if (!(await askConfirm('Удалить фото?'))) return;
+      try {
+        await apiFetch(`/cars/${id}/photos/${photoId}/delete`, { method: 'POST' });
+        toast('Фото удалено');
+        const panel = document.getElementById(`photos-${id}`);
+        const { listing } = await apiFetch(`/cars/${id}`);
+        panel.innerHTML = photosPanelContent(id, listing.photos, listing.photoIds);
+      } catch (err) {
+        toast(err.message);
       }
     }
   });
@@ -892,7 +937,7 @@
     const preview = document.querySelector(`[data-preview="${id}"]`);
     if (!preview) return;
     preview.innerHTML = '';
-    Array.from(input.files || []).slice(0, 10).forEach((file) => {
+    Array.from(input.files || []).slice(0, 1).forEach((file) => {
       const img = document.createElement('img');
       img.src = URL.createObjectURL(file);
       preview.appendChild(img);
@@ -994,8 +1039,74 @@
       </div>`;
   }
 
+  function renterContactCardHtml(r) {
+    const badge = `<span class="badge ${r.status === 'confirmed' ? 'ok' : r.status === 'declined' ? 'cancelled' : 'pending'}">${CONTACT_STATUS_LABELS[r.status] || r.status}</span>`;
+    const phoneLine = r.status === 'confirmed'
+      ? `<div class="owner">Телефон владельца: ${escapeHtml(r.owner_phone || 'не указан')}</div>`
+      : '';
+    return `
+      <div class="card">
+        <div class="row">
+          <div class="route">${escapeHtml(r.brand)} ${escapeHtml(r.model)}</div>
+          ${badge}
+        </div>
+        <div class="meta"><span>${escapeHtml(r.city)}</span></div>
+        <div class="owner">Владелец: ${escapeHtml(r.owner_full_name || r.owner_first_name)}${r.owner_username ? ' · @' + escapeHtml(r.owner_username) : ''}</div>
+        ${phoneLine}
+      </div>`;
+  }
+
+  function ownerContactCardHtml(r) {
+    const badge = `<span class="badge ${r.status === 'confirmed' ? 'ok' : r.status === 'declined' ? 'cancelled' : 'pending'}">${CONTACT_STATUS_LABELS[r.status] || r.status}</span>`;
+    const phoneLine = r.status === 'confirmed'
+      ? `<div class="owner">Телефон арендатора: ${escapeHtml(r.renter_phone || 'не указан')}</div>`
+      : '';
+    const actions = r.status === 'pending'
+      ? `<div class="confirm-actions" style="margin-top:8px;">
+          <button type="button" class="btn small confirm-contact-btn" data-request-id="${r.id}">Показать контакты</button>
+          <button type="button" class="btn secondary small decline-contact-btn" data-request-id="${r.id}">Отклонить</button>
+        </div>`
+      : '';
+    return `
+      <div class="card">
+        <div class="row">
+          <div class="route">${escapeHtml(r.brand)} ${escapeHtml(r.model)}</div>
+          ${badge}
+        </div>
+        <div class="meta"><span>${escapeHtml(r.city)}</span></div>
+        <div class="owner">Арендатор: ${escapeHtml(r.renter_full_name || r.renter_first_name)}${r.renter_username ? ' · @' + escapeHtml(r.renter_username) : ''}</div>
+        ${phoneLine}
+        ${actions}
+      </div>`;
+  }
+
+  document.getElementById('ownerContactsList').addEventListener('click', async (e) => {
+    const confirmBtn = e.target.closest('.confirm-contact-btn');
+    const declineBtn = e.target.closest('.decline-contact-btn');
+    if (!confirmBtn && !declineBtn) return;
+    const id = (confirmBtn || declineBtn).dataset.requestId;
+    const action = confirmBtn ? 'confirm' : 'decline';
+    try {
+      await apiFetch(`/contact-requests/${id}/${action}`, { method: 'POST' });
+      toast(action === 'confirm' ? 'Контакты арендатора теперь видны' : 'Запрос отклонён');
+      loadBookingsTab();
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
   async function loadBookingsTab() {
     if (state.bookingsSub === 'renter') {
+      const contactsList = document.getElementById('renterContactsList');
+      const contactsEmpty = document.getElementById('renterContactsEmpty');
+      try {
+        const { requests } = await apiFetch('/contact-requests/mine');
+        contactsEmpty.hidden = requests.length > 0;
+        contactsList.innerHTML = requests.map(renterContactCardHtml).join('');
+      } catch (err) {
+        contactsList.innerHTML = '';
+      }
+
       const list = document.getElementById('renterBookingsList');
       const empty = document.getElementById('renterBookingsEmpty');
       empty.hidden = true;
@@ -1009,6 +1120,16 @@
         toast(err.message);
       }
     } else {
+      const contactsList = document.getElementById('ownerContactsList');
+      const contactsEmpty = document.getElementById('ownerContactsEmpty');
+      try {
+        const { requests } = await apiFetch('/contact-requests/owner');
+        contactsEmpty.hidden = requests.length > 0;
+        contactsList.innerHTML = requests.map(ownerContactCardHtml).join('');
+      } catch (err) {
+        contactsList.innerHTML = '';
+      }
+
       const list = document.getElementById('ownerBookingsList');
       const empty = document.getElementById('ownerBookingsEmpty');
       empty.hidden = true;

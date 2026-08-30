@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.carsRouter = void 0;
 const express_1 = require("express");
 const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const auth_1 = require("../middleware/auth");
 const rateLimit_1 = require("../middleware/rateLimit");
 const cities_1 = require("../../db/cities");
@@ -144,8 +145,11 @@ exports.carsRouter.post('/', auth_1.requireAgreementAccepted, (0, rateLimit_1.wr
     });
     res.status(201).json({ listing });
 });
-const MAX_PHOTOS_PER_LISTING = 10;
-/** Загрузка фото автомобиля — до 10 штук на объявление, только владельцем. */
+// Одно фото на объявление — сознательное ограничение, чтобы не раздувать
+// хранилище хостинга (даже сжатые в WebP, десятки фото на объявление
+// быстро набегают на заметный объём при росте числа объявлений).
+const MAX_PHOTOS_PER_LISTING = 1;
+/** Загрузка фото автомобиля — одно на объявление, только владельцем. Чтобы заменить, сперва удалите текущее. */
 exports.carsRouter.post('/:id/photos', auth_1.requireAgreementAccepted, (0, rateLimit_1.writeLimiter)(20, 10 * 60000), (req, res, next) => {
     upload_1.uploadCarPhoto.array('photos', MAX_PHOTOS_PER_LISTING)(req, res, (err) => {
         if (err) {
@@ -201,6 +205,29 @@ exports.carsRouter.post('/:id/photos', auth_1.requireAgreementAccepted, (0, rate
         return;
     }
     res.json({ photos: saved.map((f) => `/uploads/${f}`) });
+});
+/** Удаление фото объявления — нужно, чтобы заменить единственное разрешённое фото на другое. */
+exports.carsRouter.post('/:id/photos/:photoId/delete', (req, res) => {
+    const { user } = req;
+    const listingId = (0, parseId_1.parseId)(req.params.id);
+    const photoId = (0, parseId_1.parseId)(req.params.photoId);
+    if (!listingId || !photoId) {
+        res.status(400).json({ error: 'Некорректный ID' });
+        return;
+    }
+    const listing = (0, carService_1.getListingWithExtras)(listingId);
+    if (!listing || listing.owner_id !== user.telegram_id) {
+        res.status(403).json({ error: 'Это не ваше объявление' });
+        return;
+    }
+    const photo = (0, carService_1.getListingPhoto)(photoId);
+    if (!photo || photo.listing_id !== listingId) {
+        res.status(404).json({ error: 'Фото не найдено' });
+        return;
+    }
+    (0, carService_1.deleteListingPhotoRecord)(photoId);
+    (0, upload_1.removeUploadedFile)(path_1.default.join(upload_1.uploadsDir, path_1.default.basename(photo.photo_path)));
+    res.json({ ok: true });
 });
 function setStatus(status) {
     return (req, res) => {
