@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '16';
+  const APP_VERSION = '17';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -516,7 +516,16 @@
     }, { wide: true });
   }
 
-  /** Runs an action; if the backend says agreementRequired, shows the modal and retries once accepted. */
+  /**
+   * Runs an action; if the backend says agreementRequired, shows the modal and
+   * retries once accepted. Every other failure (validation error from the
+   * server, network error, etc.) is shown as a toast here — none of the call
+   * sites wrap this in their own try/catch, so previously such an error just
+   * became an unhandled promise rejection: no toast, and any "disable button
+   * while sending" flag right after the await never got reset, leaving the
+   * button stuck (e.g. "Забронировать" doing nothing when the booking failed
+   * server-side minimum-rental-days check).
+   */
   async function withAgreementGate(action) {
     try {
       await action();
@@ -525,7 +534,7 @@
         await ensureAgreementThenRetry(action);
         return;
       }
-      throw err;
+      toast(err.message || 'Не удалось выполнить действие');
     }
   }
 
