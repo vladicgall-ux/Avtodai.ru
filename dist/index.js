@@ -24,6 +24,16 @@ async function main() {
             'не в российском регионе, запросы к API MAX могут падать по TLS. ' +
             'Укажите NODE_EXTRA_CA_CERTS=./certs/russian_trusted_ca.pem — см. README.md.');
     }
+    if (!config_1.config.publicOrigin) {
+        // Без PUBLIC_ORIGIN проверка Origin/Referer в csrfProtection() пропускает
+        // все запросы (см. server/middleware/csrf.ts) — сознательный компромисс,
+        // а не отказ запуска: бот и Mini App должны продолжать работать, даже
+        // если хостинг ещё не выдал/не привязал публичный домен. Но раз это
+        // ослабляет защиту веб-версии (браузер вне Mini App, вход по cookie) от
+        // CSRF, дежурное предупреждение в логе — не пропустить это в production.
+        console.warn('PUBLIC_ORIGIN не задан — проверка Origin/Referer (защита от CSRF для веб-версии) ' +
+            'отключена. Задайте PUBLIC_ORIGIN=https://<ваш-домен> в production.');
+    }
     const app = (0, app_1.createApp)();
     app.listen(config_1.config.port, () => {
         console.log(`${config_1.config.serviceName}: HTTP-сервер и Mini App запущены на порту ${config_1.config.port}`);

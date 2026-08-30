@@ -14,6 +14,7 @@ import {
 } from '../services/contactRequestService';
 import { displayName, platformLabel } from '../utils/displayName';
 import { formatDate } from '../utils/dateFormat';
+import { escapeBotHtml as esc } from '../utils/escapeBotHtml';
 import { bannerPath } from './bot';
 
 /** Тот же принцип, что и лимит поддержки в bot.ts — не даёт заваливать БД/админов текстом. */
@@ -106,7 +107,7 @@ export function createMaxBot(): Bot {
     const user = upsertMaxUser({ id: sender.user_id, name: sender.name, username: sender.username });
     createSupportMessage(user.telegram_id, text.slice(0, 1000));
     await notifyAdmins(
-      `🆘 <b>Сообщение в поддержку (MAX)</b>\nОт: ${sender.name}${sender.username ? ' · @' + sender.username : ''} (ID ${maxStorageId(sender.user_id)})\n\n${text}`
+      `🆘 <b>Сообщение в поддержку (MAX)</b>\nОт: ${esc(sender.name)}${sender.username ? ' · @' + esc(sender.username) : ''} (ID ${maxStorageId(sender.user_id)})\n\n${esc(text)}`
     );
     await ctx.reply('✅ Сообщение отправлено в поддержку. Мы ответим вам здесь, в этом чате.');
   });
@@ -121,9 +122,9 @@ export function createMaxBot(): Bot {
       await ctx.answerOnCallback({ notification: 'Бронирование подтверждено!' });
       await ctx.editMessage({
         text:
-          `✅ Вы подтвердили бронь.\n${info.brand} ${info.model}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\n` +
-          `Арендатор (${platformLabel(info.renter_platform)}): ${displayName(info.renter_full_name, info.renter_first_name)}${info.renter_username ? ' (@' + info.renter_username + ')' : ''}\n` +
-          `Телефон: ${info.renter_phone ?? 'не указан'}\n` +
+          `✅ Вы подтвердили бронь.\n${esc(info.brand)} ${esc(info.model)}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\n` +
+          `Арендатор (${platformLabel(info.renter_platform)}): ${esc(displayName(info.renter_full_name, info.renter_first_name))}${info.renter_username ? ' (@' + esc(info.renter_username) + ')' : ''}\n` +
+          `Телефон: ${info.renter_phone ? esc(info.renter_phone) : 'не указан'}\n` +
           `Сумма: ${info.total_price} ₽${info.deposit ? ` + залог ${info.deposit} ₽` : ''}`,
         format: 'html',
       });
@@ -131,8 +132,8 @@ export function createMaxBot(): Bot {
       const renterUser = getUser(info.renter_id)!;
       await notifyUser(
         renterUser,
-        `✅ Владелец подтвердил бронь!\n${info.brand} ${info.model}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\n` +
-          `Владелец (${platformLabel(info.owner_platform)}): ${displayName(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}\nСумма: ${info.total_price} ₽`
+        `✅ Владелец подтвердил бронь!\n${esc(info.brand)} ${esc(info.model)}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\n` +
+          `Владелец (${platformLabel(info.owner_platform)}): ${esc(displayName(info.owner_full_name, info.owner_first_name))}\nТелефон: ${info.owner_phone ? esc(info.owner_phone) : 'не указан'}\nСумма: ${info.total_price} ₽`
       );
       await notifyContractReady(renterUser, bookingId);
       const ownerUser = getUser(info.owner_id)!;
@@ -152,13 +153,13 @@ export function createMaxBot(): Bot {
 
       await ctx.answerOnCallback({ notification: 'Бронирование отклонено' });
       await ctx.editMessage({
-        text: `❌ Вы отклонили бронь.\n${info.brand} ${info.model}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\nАвтомобиль снова доступен на эти даты.`,
+        text: `❌ Вы отклонили бронь.\n${esc(info.brand)} ${esc(info.model)}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\nАвтомобиль снова доступен на эти даты.`,
         format: 'html',
       });
 
       await notifyUser(
         getUser(info.renter_id)!,
-        `❌ Владелец отклонил бронь на ${info.brand} ${info.model} (${formatDate(info.date_from)} — ${formatDate(info.date_to)}).\nПопробуйте найти другой автомобиль в приложении.`
+        `❌ Владелец отклонил бронь на ${esc(info.brand)} ${esc(info.model)} (${formatDate(info.date_from)} — ${formatDate(info.date_to)}).\nПопробуйте найти другой автомобиль в приложении.`
       );
     } catch (err) {
       const message = err instanceof BookingError ? err.message : 'Не удалось отклонить бронирование';
@@ -176,16 +177,16 @@ export function createMaxBot(): Bot {
       await ctx.answerOnCallback({ notification: 'Контакты подтверждены!' });
       await ctx.editMessage({
         text:
-          `✅ Вы подтвердили запрос на контакты.\n${info.brand} ${info.model} (${info.city})\n` +
-          `Арендатор (${platformLabel(info.renter_platform)}): ${displayName(info.renter_full_name, info.renter_first_name)}${info.renter_username ? ' (@' + info.renter_username + ')' : ''}\n` +
-          `Телефон: ${info.renter_phone ?? 'не указан'}`,
+          `✅ Вы подтвердили запрос на контакты.\n${esc(info.brand)} ${esc(info.model)} (${esc(info.city)})\n` +
+          `Арендатор (${platformLabel(info.renter_platform)}): ${esc(displayName(info.renter_full_name, info.renter_first_name))}${info.renter_username ? ' (@' + esc(info.renter_username) + ')' : ''}\n` +
+          `Телефон: ${info.renter_phone ? esc(info.renter_phone) : 'не указан'}`,
         format: 'html',
       });
 
       await notifyUser(
         getUser(info.renter_id)!,
-        `✅ Владелец подтвердил запрос!\n${info.brand} ${info.model} (${info.city})\n` +
-          `Владелец (${platformLabel(info.owner_platform)}): ${displayName(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}`
+        `✅ Владелец подтвердил запрос!\n${esc(info.brand)} ${esc(info.model)} (${esc(info.city)})\n` +
+          `Владелец (${platformLabel(info.owner_platform)}): ${esc(displayName(info.owner_full_name, info.owner_first_name))}\nТелефон: ${info.owner_phone ? esc(info.owner_phone) : 'не указан'}`
       );
     } catch (err) {
       const message = err instanceof ContactRequestError ? err.message : 'Не удалось подтвердить запрос';
@@ -202,13 +203,13 @@ export function createMaxBot(): Bot {
 
       await ctx.answerOnCallback({ notification: 'Запрос отклонён' });
       await ctx.editMessage({
-        text: `❌ Вы отклонили запрос на контакты по объявлению ${info.brand} ${info.model}.`,
+        text: `❌ Вы отклонили запрос на контакты по объявлению ${esc(info.brand)} ${esc(info.model)}.`,
         format: 'html',
       });
 
       await notifyUser(
         getUser(info.renter_id)!,
-        `❌ Владелец отклонил запрос на контакты по объявлению ${info.brand} ${info.model}.`
+        `❌ Владелец отклонил запрос на контакты по объявлению ${esc(info.brand)} ${esc(info.model)}.`
       );
     } catch (err) {
       const message = err instanceof ContactRequestError ? err.message : 'Не удалось отклонить запрос';

@@ -17,6 +17,7 @@ import { getUser } from '../../services/userService';
 import { displayName, platformLabel } from '../../utils/displayName';
 import { formatDate } from '../../utils/dateFormat';
 import { parseId } from '../utils/parseId';
+import { escapeBotHtml as esc } from '../../utils/escapeBotHtml';
 
 export const bookingsRouter = Router();
 
@@ -78,13 +79,13 @@ bookingsRouter.post('/', requireAgreementAccepted, writeLimiter(20, 10 * 60_000)
     if (owner) {
       await notifyUser(
         owner,
-        `🚗 Новая заявка на аренду!\n${renterName} (${platformLabel(user.platform)}) хочет арендовать ${full.brand} ${full.model} с ${formatDate(dateFrom)} по ${formatDate(dateTo)}.\nСумма: ${booking.total_price} ₽${booking.deposit ? ` + залог ${booking.deposit} ₽` : ''}.\nНажмите «Подтверждаю», чтобы бронь закрепилась и вы получили контакт арендатора.`,
+        `🚗 Новая заявка на аренду!\n${esc(renterName)} (${platformLabel(user.platform)}) хочет арендовать ${esc(full.brand)} ${esc(full.model)} с ${formatDate(dateFrom)} по ${formatDate(dateTo)}.\nСумма: ${booking.total_price} ₽${booking.deposit ? ` + залог ${booking.deposit} ₽` : ''}.\nНажмите «Подтверждаю», чтобы бронь закрепилась и вы получили контакт арендатора.`,
         ownerButtons
       );
     }
     await notifyUser(
       user,
-      `⏳ Заявка отправлена владельцу!\n${full.brand} ${full.model}, ${formatDate(dateFrom)} — ${formatDate(dateTo)}\nВладелец: ${full.owner_first_name}${owner ? ` (${platformLabel(owner.platform)})` : ''}\nЖдём подтверждения — как только владелец подтвердит, вы получите его контакт и сможете сформировать договор аренды.`
+      `⏳ Заявка отправлена владельцу!\n${esc(full.brand)} ${esc(full.model)}, ${formatDate(dateFrom)} — ${formatDate(dateTo)}\nВладелец: ${esc(full.owner_first_name)}${owner ? ` (${platformLabel(owner.platform)})` : ''}\nЖдём подтверждения — как только владелец подтвердит, вы получите его контакт и сможете сформировать договор аренды.`
     );
 
     res.status(201).json({ booking });
@@ -113,7 +114,7 @@ bookingsRouter.post('/:id/cancel', async (req, res) => {
       if (owner) {
         await notifyUser(
           owner,
-          `❌ Арендатор (${platformLabel(user.platform)}) отменил бронь на ${full.brand} ${full.model} (${formatDate(full.date_from)} — ${formatDate(full.date_to)}).${reason ? `\nПричина: ${reason}` : ''}`
+          `❌ Арендатор (${platformLabel(user.platform)}) отменил бронь на ${esc(full.brand)} ${esc(full.model)} (${formatDate(full.date_from)} — ${formatDate(full.date_to)}).${reason ? `\nПричина: ${esc(reason)}` : ''}`
         );
       }
     }
@@ -144,7 +145,7 @@ bookingsRouter.post('/:id/cancel-owner', async (req, res) => {
       if (renter) {
         await notifyUser(
           renter,
-          `❌ Владелец отменил подтверждённую бронь на ${full.brand} ${full.model} (${formatDate(full.date_from)} — ${formatDate(full.date_to)}).${reason ? `\nПричина: ${reason}` : ''}`
+          `❌ Владелец отменил подтверждённую бронь на ${esc(full.brand)} ${esc(full.model)} (${formatDate(full.date_from)} — ${formatDate(full.date_to)}).${reason ? `\nПричина: ${esc(reason)}` : ''}`
         );
       }
     }
@@ -173,7 +174,7 @@ bookingsRouter.post('/:id/confirm', async (req, res) => {
     if (renter) {
       await notifyUser(
         renter,
-        `✅ Владелец подтвердил бронь!\n${full.brand} ${full.model}, ${formatDate(full.date_from)} — ${formatDate(full.date_to)}\nВладелец: ${full.owner_first_name}${full.owner_phone ? `, тел. ${full.owner_phone}` : ''}`
+        `✅ Владелец подтвердил бронь!\n${esc(full.brand)} ${esc(full.model)}, ${formatDate(full.date_from)} — ${formatDate(full.date_to)}\nВладелец: ${esc(full.owner_first_name)}${full.owner_phone ? `, тел. ${esc(full.owner_phone)}` : ''}`
       );
       await notifyContractReady(renter, booking.id);
     }
@@ -204,7 +205,7 @@ bookingsRouter.post('/:id/decline', async (req, res) => {
     if (renter) {
       await notifyUser(
         renter,
-        `❌ Владелец отклонил бронь на ${full.brand} ${full.model} (${formatDate(full.date_from)} — ${formatDate(full.date_to)}).${reason ? `\nПричина: ${reason}` : ''}`
+        `❌ Владелец отклонил бронь на ${esc(full.brand)} ${esc(full.model)} (${formatDate(full.date_from)} — ${formatDate(full.date_to)}).${reason ? `\nПричина: ${esc(reason)}` : ''}`
       );
     }
     res.json({ booking });

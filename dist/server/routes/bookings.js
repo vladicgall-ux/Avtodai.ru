@@ -10,6 +10,7 @@ const userService_1 = require("../../services/userService");
 const displayName_1 = require("../../utils/displayName");
 const dateFormat_1 = require("../../utils/dateFormat");
 const parseId_1 = require("../utils/parseId");
+const escapeBotHtml_1 = require("../../utils/escapeBotHtml");
 exports.bookingsRouter = (0, express_1.Router)();
 exports.bookingsRouter.use(auth_1.requireAuth, auth_1.requireActiveUser);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -59,9 +60,9 @@ exports.bookingsRouter.post('/', auth_1.requireAgreementAccepted, (0, rateLimit_
         ];
         const owner = (0, userService_1.getUser)(full.owner_id);
         if (owner) {
-            await (0, notifier_1.notifyUser)(owner, `🚗 Новая заявка на аренду!\n${renterName} (${(0, displayName_1.platformLabel)(user.platform)}) хочет арендовать ${full.brand} ${full.model} с ${(0, dateFormat_1.formatDate)(dateFrom)} по ${(0, dateFormat_1.formatDate)(dateTo)}.\nСумма: ${booking.total_price} ₽${booking.deposit ? ` + залог ${booking.deposit} ₽` : ''}.\nНажмите «Подтверждаю», чтобы бронь закрепилась и вы получили контакт арендатора.`, ownerButtons);
+            await (0, notifier_1.notifyUser)(owner, `🚗 Новая заявка на аренду!\n${(0, escapeBotHtml_1.escapeBotHtml)(renterName)} (${(0, displayName_1.platformLabel)(user.platform)}) хочет арендовать ${(0, escapeBotHtml_1.escapeBotHtml)(full.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(full.model)} с ${(0, dateFormat_1.formatDate)(dateFrom)} по ${(0, dateFormat_1.formatDate)(dateTo)}.\nСумма: ${booking.total_price} ₽${booking.deposit ? ` + залог ${booking.deposit} ₽` : ''}.\nНажмите «Подтверждаю», чтобы бронь закрепилась и вы получили контакт арендатора.`, ownerButtons);
         }
-        await (0, notifier_1.notifyUser)(user, `⏳ Заявка отправлена владельцу!\n${full.brand} ${full.model}, ${(0, dateFormat_1.formatDate)(dateFrom)} — ${(0, dateFormat_1.formatDate)(dateTo)}\nВладелец: ${full.owner_first_name}${owner ? ` (${(0, displayName_1.platformLabel)(owner.platform)})` : ''}\nЖдём подтверждения — как только владелец подтвердит, вы получите его контакт и сможете сформировать договор аренды.`);
+        await (0, notifier_1.notifyUser)(user, `⏳ Заявка отправлена владельцу!\n${(0, escapeBotHtml_1.escapeBotHtml)(full.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(full.model)}, ${(0, dateFormat_1.formatDate)(dateFrom)} — ${(0, dateFormat_1.formatDate)(dateTo)}\nВладелец: ${(0, escapeBotHtml_1.escapeBotHtml)(full.owner_first_name)}${owner ? ` (${(0, displayName_1.platformLabel)(owner.platform)})` : ''}\nЖдём подтверждения — как только владелец подтвердит, вы получите его контакт и сможете сформировать договор аренды.`);
         res.status(201).json({ booking });
     }
     catch (err) {
@@ -86,7 +87,7 @@ exports.bookingsRouter.post('/:id/cancel', async (req, res) => {
         if (full) {
             const owner = (0, userService_1.getUser)(full.owner_id);
             if (owner) {
-                await (0, notifier_1.notifyUser)(owner, `❌ Арендатор (${(0, displayName_1.platformLabel)(user.platform)}) отменил бронь на ${full.brand} ${full.model} (${(0, dateFormat_1.formatDate)(full.date_from)} — ${(0, dateFormat_1.formatDate)(full.date_to)}).${reason ? `\nПричина: ${reason}` : ''}`);
+                await (0, notifier_1.notifyUser)(owner, `❌ Арендатор (${(0, displayName_1.platformLabel)(user.platform)}) отменил бронь на ${(0, escapeBotHtml_1.escapeBotHtml)(full.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(full.model)} (${(0, dateFormat_1.formatDate)(full.date_from)} — ${(0, dateFormat_1.formatDate)(full.date_to)}).${reason ? `\nПричина: ${(0, escapeBotHtml_1.escapeBotHtml)(reason)}` : ''}`);
             }
         }
         res.json({ booking });
@@ -114,7 +115,7 @@ exports.bookingsRouter.post('/:id/cancel-owner', async (req, res) => {
         if (full) {
             const renter = (0, userService_1.getUser)(full.renter_id);
             if (renter) {
-                await (0, notifier_1.notifyUser)(renter, `❌ Владелец отменил подтверждённую бронь на ${full.brand} ${full.model} (${(0, dateFormat_1.formatDate)(full.date_from)} — ${(0, dateFormat_1.formatDate)(full.date_to)}).${reason ? `\nПричина: ${reason}` : ''}`);
+                await (0, notifier_1.notifyUser)(renter, `❌ Владелец отменил подтверждённую бронь на ${(0, escapeBotHtml_1.escapeBotHtml)(full.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(full.model)} (${(0, dateFormat_1.formatDate)(full.date_from)} — ${(0, dateFormat_1.formatDate)(full.date_to)}).${reason ? `\nПричина: ${(0, escapeBotHtml_1.escapeBotHtml)(reason)}` : ''}`);
             }
         }
         res.json({ booking });
@@ -140,7 +141,7 @@ exports.bookingsRouter.post('/:id/confirm', async (req, res) => {
         const full = (0, bookingService_1.getBookingWithPeople)(booking.id);
         const renter = (0, userService_1.getUser)(full.renter_id);
         if (renter) {
-            await (0, notifier_1.notifyUser)(renter, `✅ Владелец подтвердил бронь!\n${full.brand} ${full.model}, ${(0, dateFormat_1.formatDate)(full.date_from)} — ${(0, dateFormat_1.formatDate)(full.date_to)}\nВладелец: ${full.owner_first_name}${full.owner_phone ? `, тел. ${full.owner_phone}` : ''}`);
+            await (0, notifier_1.notifyUser)(renter, `✅ Владелец подтвердил бронь!\n${(0, escapeBotHtml_1.escapeBotHtml)(full.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(full.model)}, ${(0, dateFormat_1.formatDate)(full.date_from)} — ${(0, dateFormat_1.formatDate)(full.date_to)}\nВладелец: ${(0, escapeBotHtml_1.escapeBotHtml)(full.owner_first_name)}${full.owner_phone ? `, тел. ${(0, escapeBotHtml_1.escapeBotHtml)(full.owner_phone)}` : ''}`);
             await (0, notifier_1.notifyContractReady)(renter, booking.id);
         }
         await (0, notifier_1.notifyContractReady)(user, booking.id);
@@ -168,7 +169,7 @@ exports.bookingsRouter.post('/:id/decline', async (req, res) => {
         const full = (0, bookingService_1.getBookingWithPeople)(booking.id);
         const renter = (0, userService_1.getUser)(full.renter_id);
         if (renter) {
-            await (0, notifier_1.notifyUser)(renter, `❌ Владелец отклонил бронь на ${full.brand} ${full.model} (${(0, dateFormat_1.formatDate)(full.date_from)} — ${(0, dateFormat_1.formatDate)(full.date_to)}).${reason ? `\nПричина: ${reason}` : ''}`);
+            await (0, notifier_1.notifyUser)(renter, `❌ Владелец отклонил бронь на ${(0, escapeBotHtml_1.escapeBotHtml)(full.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(full.model)} (${(0, dateFormat_1.formatDate)(full.date_from)} — ${(0, dateFormat_1.formatDate)(full.date_to)}).${reason ? `\nПричина: ${(0, escapeBotHtml_1.escapeBotHtml)(reason)}` : ''}`);
         }
         res.json({ booking });
     }

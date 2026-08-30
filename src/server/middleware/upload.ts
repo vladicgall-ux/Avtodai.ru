@@ -1,6 +1,7 @@
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import sharp from 'sharp';
 import { config } from '../../config';
 import type { AuthedRequest } from './auth';
@@ -24,10 +25,11 @@ const carPhotoStorage = multer.diskStorage({
     // Расширение всегда .webp независимо от формата, в котором прислал
     // клиент — processUploadedImage() ниже перекодирует любой принятый
     // формат (JPEG/PNG/WebP) в WebP, так что на диске всегда лежит WebP.
-    // crypto-random суффикс — без него параллельная загрузка двух фото одним
-    // владельцем в один и тот же миллисекунд перезаписала бы файл друг друга.
-    const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    cb(null, `car-${ownerId}-${unique}.webp`);
+    // crypto.randomUUID() — без него параллельная загрузка двух фото одним
+    // владельцем в один и тот же миллисекунд перезаписала бы файл друг друга;
+    // Math.random() тут не годится и как источник уникальности (не крипто-
+    // стойкий ГПСЧ), раз имя файла и так угадываемо по timestamp+ownerId.
+    cb(null, `car-${ownerId}-${crypto.randomUUID()}.webp`);
   },
 });
 
@@ -46,8 +48,7 @@ export const uploadCarPhoto = multer({
 const broadcastStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
   filename: (_req, _file, cb) => {
-    const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    cb(null, `broadcast-${unique}.webp`);
+    cb(null, `broadcast-${crypto.randomUUID()}.webp`);
   },
 });
 

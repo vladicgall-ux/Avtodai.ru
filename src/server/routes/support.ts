@@ -4,6 +4,7 @@ import { writeLimiter } from '../middleware/rateLimit';
 import { createSupportMessage } from '../../services/supportService';
 import { notifyAdmins } from '../../bot/notifier';
 import { displayName } from '../../utils/displayName';
+import { escapeBotHtml as esc } from '../../utils/escapeBotHtml';
 
 export const supportRouter = Router();
 
@@ -27,7 +28,7 @@ supportRouter.post('/', writeLimiter(8, 5 * 60_000), async (req, res) => {
     .filter(Boolean)
     .join(' ');
   await notifyAdmins(
-    `🆘 <b>Сообщение в поддержку</b>\nОт: ${senderName} (ID ${user.telegram_id})${user.phone ? `, ${user.phone}` : ''}\n\n${message}`
+    `🆘 <b>Сообщение в поддержку</b>\nОт: ${esc(senderName)} (ID ${user.telegram_id})${user.phone ? `, ${esc(user.phone)}` : ''}\n\n${esc(message)}`
   );
 
   res.status(201).json({ message: record });

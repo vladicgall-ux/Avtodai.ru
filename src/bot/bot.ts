@@ -14,6 +14,7 @@ import { createSupportMessage } from '../services/supportService';
 import { consumeLoginCode } from '../services/webSessionService';
 import { displayName, platformLabel } from '../utils/displayName';
 import { formatDate } from '../utils/dateFormat';
+import { escapeBotHtml as esc } from '../utils/escapeBotHtml';
 
 /**
  * Простой лимит на сообщения в поддержку через бота: без него любой
@@ -174,9 +175,9 @@ export function createBot(): Telegraf {
       const renterButtons = dialogRows('💬 Написать арендатору', info.renter_username, info.renter_platform);
       await ctx.answerCbQuery('Бронирование подтверждено!');
       await ctx.editMessageText(
-        `✅ Вы подтвердили бронь.\n${info.brand} ${info.model}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\n` +
-          `Арендатор (${platformLabel(info.renter_platform)}): ${displayName(info.renter_full_name, info.renter_first_name)}${info.renter_username ? ' (@' + info.renter_username + ')' : ''}\n` +
-          `Телефон: ${info.renter_phone ?? 'не указан'}\n` +
+        `✅ Вы подтвердили бронь.\n${esc(info.brand)} ${esc(info.model)}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\n` +
+          `Арендатор (${platformLabel(info.renter_platform)}): ${esc(displayName(info.renter_full_name, info.renter_first_name))}${info.renter_username ? ' (@' + esc(info.renter_username) + ')' : ''}\n` +
+          `Телефон: ${info.renter_phone ? esc(info.renter_phone) : 'не указан'}\n` +
           `Сумма: ${info.total_price} ₽${info.deposit ? ` + залог ${info.deposit} ₽` : ''}`,
         {
           parse_mode: 'HTML',
@@ -187,8 +188,8 @@ export function createBot(): Telegraf {
       const renterUser = getUser(info.renter_id)!;
       await notifyUser(
         renterUser,
-        `✅ Владелец подтвердил бронь!\n${info.brand} ${info.model}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\n` +
-          `Владелец (${platformLabel(info.owner_platform)}): ${displayName(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}\nСумма: ${info.total_price} ₽`
+        `✅ Владелец подтвердил бронь!\n${esc(info.brand)} ${esc(info.model)}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\n` +
+          `Владелец (${platformLabel(info.owner_platform)}): ${esc(displayName(info.owner_full_name, info.owner_first_name))}\nТелефон: ${info.owner_phone ? esc(info.owner_phone) : 'не указан'}\nСумма: ${info.total_price} ₽`
       );
       await notifyContractReady(renterUser, bookingId);
       const ownerUser = getUser(info.owner_id)!;
@@ -207,12 +208,12 @@ export function createBot(): Telegraf {
 
       await ctx.answerCbQuery('Бронирование отклонено');
       await ctx.editMessageText(
-        `❌ Вы отклонили бронь.\n${info.brand} ${info.model}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\nАвтомобиль снова доступен на эти даты.`
+        `❌ Вы отклонили бронь.\n${esc(info.brand)} ${esc(info.model)}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\nАвтомобиль снова доступен на эти даты.`
       );
 
       await notifyUser(
         getUser(info.renter_id)!,
-        `❌ Владелец отклонил бронь на ${info.brand} ${info.model} (${formatDate(info.date_from)} — ${formatDate(info.date_to)}).\nПопробуйте найти другой автомобиль в приложении.`
+        `❌ Владелец отклонил бронь на ${esc(info.brand)} ${esc(info.model)} (${formatDate(info.date_from)} — ${formatDate(info.date_to)}).\nПопробуйте найти другой автомобиль в приложении.`
       );
     } catch (err) {
       const message = err instanceof BookingError ? err.message : 'Не удалось отклонить бронирование';
@@ -229,9 +230,9 @@ export function createBot(): Telegraf {
       const renterButtons = dialogRows('💬 Написать арендатору', info.renter_username, info.renter_platform);
       await ctx.answerCbQuery('Контакты подтверждены!');
       await ctx.editMessageText(
-        `✅ Вы подтвердили запрос на контакты.\n${info.brand} ${info.model} (${info.city})\n` +
-          `Арендатор (${platformLabel(info.renter_platform)}): ${displayName(info.renter_full_name, info.renter_first_name)}${info.renter_username ? ' (@' + info.renter_username + ')' : ''}\n` +
-          `Телефон: ${info.renter_phone ?? 'не указан'}`,
+        `✅ Вы подтвердили запрос на контакты.\n${esc(info.brand)} ${esc(info.model)} (${esc(info.city)})\n` +
+          `Арендатор (${platformLabel(info.renter_platform)}): ${esc(displayName(info.renter_full_name, info.renter_first_name))}${info.renter_username ? ' (@' + esc(info.renter_username) + ')' : ''}\n` +
+          `Телефон: ${info.renter_phone ? esc(info.renter_phone) : 'не указан'}`,
         {
           parse_mode: 'HTML',
           ...(renterButtons ? Markup.inlineKeyboard(renterButtons) : {}),
@@ -240,8 +241,8 @@ export function createBot(): Telegraf {
 
       await notifyUser(
         getUser(info.renter_id)!,
-        `✅ Владелец подтвердил запрос!\n${info.brand} ${info.model} (${info.city})\n` +
-          `Владелец (${platformLabel(info.owner_platform)}): ${displayName(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}`
+        `✅ Владелец подтвердил запрос!\n${esc(info.brand)} ${esc(info.model)} (${esc(info.city)})\n` +
+          `Владелец (${platformLabel(info.owner_platform)}): ${esc(displayName(info.owner_full_name, info.owner_first_name))}\nТелефон: ${info.owner_phone ? esc(info.owner_phone) : 'не указан'}`
       );
     } catch (err) {
       const message = err instanceof ContactRequestError ? err.message : 'Не удалось подтвердить запрос';
@@ -256,11 +257,11 @@ export function createBot(): Telegraf {
       declineContactRequest(requestId, ctx.from.id);
 
       await ctx.answerCbQuery('Запрос отклонён');
-      await ctx.editMessageText(`❌ Вы отклонили запрос на контакты по объявлению ${info.brand} ${info.model}.`);
+      await ctx.editMessageText(`❌ Вы отклонили запрос на контакты по объявлению ${esc(info.brand)} ${esc(info.model)}.`);
 
       await notifyUser(
         getUser(info.renter_id)!,
-        `❌ Владелец отклонил запрос на контакты по объявлению ${info.brand} ${info.model}.`
+        `❌ Владелец отклонил запрос на контакты по объявлению ${esc(info.brand)} ${esc(info.model)}.`
       );
     } catch (err) {
       const message = err instanceof ContactRequestError ? err.message : 'Не удалось отклонить запрос';
@@ -318,7 +319,7 @@ export function createBot(): Telegraf {
       .filter(Boolean)
       .join(' ');
     await notifyAdmins(
-      `🆘 <b>Сообщение в поддержку</b>\nОт: ${senderName} (ID ${ctx.from.id})${user?.phone ? `, ${user.phone}` : ''}\n\n${text}`,
+      `🆘 <b>Сообщение в поддержку</b>\nОт: ${esc(senderName)} (ID ${ctx.from.id})${user?.phone ? `, ${esc(user.phone)}` : ''}\n\n${esc(text)}`,
       dialogRows('💬 Написать в ответ', ctx.from.username ?? null, 'telegram')
     );
 

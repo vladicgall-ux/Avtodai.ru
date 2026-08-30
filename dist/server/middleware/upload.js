@@ -10,6 +10,7 @@ exports.removeUploadedFile = removeUploadedFile;
 const multer_1 = __importDefault(require("multer"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const crypto_1 = __importDefault(require("crypto"));
 const sharp_1 = __importDefault(require("sharp"));
 const config_1 = require("../../config");
 exports.uploadsDir = path_1.default.join(path_1.default.dirname(config_1.config.dbPath), 'uploads');
@@ -29,10 +30,11 @@ const carPhotoStorage = multer_1.default.diskStorage({
         // Расширение всегда .webp независимо от формата, в котором прислал
         // клиент — processUploadedImage() ниже перекодирует любой принятый
         // формат (JPEG/PNG/WebP) в WebP, так что на диске всегда лежит WebP.
-        // crypto-random суффикс — без него параллельная загрузка двух фото одним
-        // владельцем в один и тот же миллисекунд перезаписала бы файл друг друга.
-        const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        cb(null, `car-${ownerId}-${unique}.webp`);
+        // crypto.randomUUID() — без него параллельная загрузка двух фото одним
+        // владельцем в один и тот же миллисекунд перезаписала бы файл друг друга;
+        // Math.random() тут не годится и как источник уникальности (не крипто-
+        // стойкий ГПСЧ), раз имя файла и так угадываемо по timestamp+ownerId.
+        cb(null, `car-${ownerId}-${crypto_1.default.randomUUID()}.webp`);
     },
 });
 exports.uploadCarPhoto = (0, multer_1.default)({
@@ -49,8 +51,7 @@ exports.uploadCarPhoto = (0, multer_1.default)({
 const broadcastStorage = multer_1.default.diskStorage({
     destination: (_req, _file, cb) => cb(null, exports.uploadsDir),
     filename: (_req, _file, cb) => {
-        const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        cb(null, `broadcast-${unique}.webp`);
+        cb(null, `broadcast-${crypto_1.default.randomUUID()}.webp`);
     },
 });
 /** Фото для массовой рассылки из админки — не привязано к объявлению,

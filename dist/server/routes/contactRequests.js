@@ -9,6 +9,7 @@ const notifier_1 = require("../../bot/notifier");
 const userService_1 = require("../../services/userService");
 const displayName_1 = require("../../utils/displayName");
 const parseId_1 = require("../utils/parseId");
+const escapeBotHtml_1 = require("../../utils/escapeBotHtml");
 exports.contactRequestsRouter = (0, express_1.Router)();
 exports.contactRequestsRouter.use(auth_1.requireAuth, auth_1.requireActiveUser);
 /** Мои запросы контактов как арендатора — телефон владельца виден только когда status = 'confirmed'. */
@@ -43,10 +44,13 @@ exports.contactRequestsRouter.post('/', auth_1.requireAgreementAccepted, (0, rat
         return;
     }
     try {
-        const request = (0, contactRequestService_1.createContactRequest)({ listingId, renterId: user.telegram_id });
+        const { request, created } = (0, contactRequestService_1.createContactRequest)({ listingId, renterId: user.telegram_id });
         const full = (0, contactRequestService_1.getContactRequestWithPeople)(request.id);
-        // Уже был такой запрос и он ещё не обработан — не шлём повторное уведомление владельцу.
-        if (request.status === 'pending') {
+        // Уже был такой запрос и он ещё не обработан — не шлём повторное
+        // уведомление владельцу (см. createContactRequest: created=false для
+        // уже существующего pending-запроса, до этого различия оба случая
+        // возвращали status === 'pending' и слали дубликат уведомления).
+        if (created) {
             const renterName = [(0, displayName_1.displayName)(user.full_name, user.first_name), user.username ? `@${user.username}` : null]
                 .filter(Boolean)
                 .join(' ');
@@ -58,9 +62,9 @@ exports.contactRequestsRouter.post('/', auth_1.requireAgreementAccepted, (0, rat
             ];
             const owner = (0, userService_1.getUser)(full.owner_id);
             if (owner) {
-                await (0, notifier_1.notifyUser)(owner, `📞 ${renterName} (${(0, displayName_1.platformLabel)(user.platform)}) хочет получить ваши контакты по объявлению ${full.brand} ${full.model} (${full.city}).\nПодтвердите, чтобы обменяться контактами.`, ownerButtons);
+                await (0, notifier_1.notifyUser)(owner, `📞 ${(0, escapeBotHtml_1.escapeBotHtml)(renterName)} (${(0, displayName_1.platformLabel)(user.platform)}) хочет получить ваши контакты по объявлению ${(0, escapeBotHtml_1.escapeBotHtml)(full.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(full.model)} (${(0, escapeBotHtml_1.escapeBotHtml)(full.city)}).\nПодтвердите, чтобы обменяться контактами.`, ownerButtons);
             }
-            await (0, notifier_1.notifyUser)(user, `⏳ Запрос на контакты отправлен владельцу ${full.brand} ${full.model}. Как только он подтвердит — вы получите его телефон.`);
+            await (0, notifier_1.notifyUser)(user, `⏳ Запрос на контакты отправлен владельцу ${(0, escapeBotHtml_1.escapeBotHtml)(full.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(full.model)}. Как только он подтвердит — вы получите его телефон.`);
         }
         res.status(201).json({ request });
     }
@@ -84,7 +88,7 @@ exports.contactRequestsRouter.post('/:id/confirm', async (req, res) => {
         const full = (0, contactRequestService_1.getContactRequestWithPeople)(id);
         const renter = (0, userService_1.getUser)(full.renter_id);
         if (renter) {
-            await (0, notifier_1.notifyUser)(renter, `✅ Владелец подтвердил запрос! ${full.brand} ${full.model} (${full.city})\nВладелец: ${(0, displayName_1.displayName)(full.owner_full_name, full.owner_first_name)}${full.owner_phone ? `, тел. ${full.owner_phone}` : ''}`);
+            await (0, notifier_1.notifyUser)(renter, `✅ Владелец подтвердил запрос! ${(0, escapeBotHtml_1.escapeBotHtml)(full.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(full.model)} (${(0, escapeBotHtml_1.escapeBotHtml)(full.city)})\nВладелец: ${(0, escapeBotHtml_1.escapeBotHtml)((0, displayName_1.displayName)(full.owner_full_name, full.owner_first_name))}${full.owner_phone ? `, тел. ${(0, escapeBotHtml_1.escapeBotHtml)(full.owner_phone)}` : ''}`);
         }
         res.json({ request: full });
     }
@@ -109,7 +113,7 @@ exports.contactRequestsRouter.post('/:id/decline', async (req, res) => {
         if (full) {
             const renter = (0, userService_1.getUser)(full.renter_id);
             if (renter) {
-                await (0, notifier_1.notifyUser)(renter, `❌ Владелец отклонил запрос на контакты по объявлению ${full.brand} ${full.model}.`);
+                await (0, notifier_1.notifyUser)(renter, `❌ Владелец отклонил запрос на контакты по объявлению ${(0, escapeBotHtml_1.escapeBotHtml)(full.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(full.model)}.`);
             }
         }
         res.json({ request });

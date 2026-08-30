@@ -19,6 +19,13 @@ exports.ContactRequestError = ContactRequestError;
  * арендатора и уведомляет владельца. Один активный (pending) запрос на пару
  * (объявление, арендатор) — повторное нажатие не плодит дубликаты.
  */
+/**
+ * created=false означает, что уже существует необработанный запрос по этому
+ * объявлению от этого арендатора, и он же возвращён. Это различие важно
+ * вызывающему коду: без него повторное нажатие кнопки «Показать контакты»
+ * (или пара быстрых кликов) видело бы status === 'pending' в обоих случаях
+ * и слало бы владельцу повторное уведомление на каждый клик.
+ */
 function createContactRequest(input) {
     const listing = (0, carService_1.getListing)(input.listingId);
     if (!listing || listing.status !== 'active') {
@@ -31,11 +38,11 @@ function createContactRequest(input) {
         .prepare(`SELECT * FROM contact_requests WHERE listing_id = ? AND renter_id = ? AND status = 'pending'`)
         .get(input.listingId, input.renterId);
     if (existing)
-        return existing;
+        return { request: existing, created: false };
     const info = db_1.db
         .prepare(`INSERT INTO contact_requests (listing_id, renter_id) VALUES (?, ?)`)
         .run(input.listingId, input.renterId);
-    return getContactRequest(Number(info.lastInsertRowid));
+    return { request: getContactRequest(Number(info.lastInsertRowid)), created: true };
 }
 function getContactRequest(id) {
     return db_1.db.prepare('SELECT * FROM contact_requests WHERE id = ?').get(id);

@@ -21,7 +21,17 @@ export class ContactRequestError extends Error {}
  * арендатора и уведомляет владельца. Один активный (pending) запрос на пару
  * (объявление, арендатор) — повторное нажатие не плодит дубликаты.
  */
-export function createContactRequest(input: { listingId: number; renterId: number }): ContactRequestRecord {
+/**
+ * created=false означает, что уже существует необработанный запрос по этому
+ * объявлению от этого арендатора, и он же возвращён. Это различие важно
+ * вызывающему коду: без него повторное нажатие кнопки «Показать контакты»
+ * (или пара быстрых кликов) видело бы status === 'pending' в обоих случаях
+ * и слало бы владельцу повторное уведомление на каждый клик.
+ */
+export function createContactRequest(input: {
+  listingId: number;
+  renterId: number;
+}): { request: ContactRequestRecord; created: boolean } {
   const listing = getListing(input.listingId);
   if (!listing || listing.status !== 'active') {
     throw new ContactRequestError('Объявление недоступно');
@@ -34,12 +44,12 @@ export function createContactRequest(input: { listingId: number; renterId: numbe
       `SELECT * FROM contact_requests WHERE listing_id = ? AND renter_id = ? AND status = 'pending'`
     )
     .get(input.listingId, input.renterId) as ContactRequestRecord | undefined;
-  if (existing) return existing;
+  if (existing) return { request: existing, created: false };
 
   const info = db
     .prepare(`INSERT INTO contact_requests (listing_id, renter_id) VALUES (?, ?)`)
     .run(input.listingId, input.renterId);
-  return getContactRequest(Number(info.lastInsertRowid))!;
+  return { request: getContactRequest(Number(info.lastInsertRowid))!, created: true };
 }
 
 export function getContactRequest(id: number): ContactRequestRecord | undefined {

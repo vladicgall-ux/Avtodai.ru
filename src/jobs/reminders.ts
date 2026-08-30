@@ -4,6 +4,7 @@ import { notify, notifyUser, notifyPhoneReminder, type NotifyButton } from '../b
 import { notifyMaxWithLink, notifyMaxPhoneReminder } from '../bot/maxNotifier';
 import { getUser, listUsersDueForPhoneReminder, markPhoneReminderSent } from '../services/userService';
 import { displayName } from '../utils/displayName';
+import { escapeBotHtml as esc } from '../utils/escapeBotHtml';
 
 interface RatingReminderRow {
   id: number;
@@ -51,7 +52,7 @@ export async function sendRatingReminders(): Promise<void> {
   for (const b of due) {
     const renter = getUser(b.renter_id);
     if (renter) {
-      const text = `🌟 Как прошла аренда ${b.brand} ${b.model} у владельца ${displayName(b.owner_full_name, b.owner_first_name)}?\nОцените аренду в приложении — это поможет другим арендаторам.`;
+      const text = `🌟 Как прошла аренда ${esc(b.brand)} ${esc(b.model)} у владельца ${esc(displayName(b.owner_full_name, b.owner_first_name))}?\nОцените аренду в приложении — это поможет другим арендаторам.`;
       const deepLink = config.webappUrl ? `${config.webappUrl}?tab=bookings` : undefined;
       if (renter.platform === 'telegram') {
         const buttons: NotifyButton[][] | undefined = deepLink

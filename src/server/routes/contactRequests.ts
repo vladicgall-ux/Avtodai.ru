@@ -14,6 +14,7 @@ import { notifyUser, type ActionButton } from '../../bot/notifier';
 import { getUser } from '../../services/userService';
 import { displayName, platformLabel } from '../../utils/displayName';
 import { parseId } from '../utils/parseId';
+import { escapeBotHtml as esc } from '../../utils/escapeBotHtml';
 
 export const contactRequestsRouter = Router();
 
@@ -54,11 +55,14 @@ contactRequestsRouter.post('/', requireAgreementAccepted, writeLimiter(20, 10 * 
   }
 
   try {
-    const request = createContactRequest({ listingId, renterId: user.telegram_id });
+    const { request, created } = createContactRequest({ listingId, renterId: user.telegram_id });
     const full = getContactRequestWithPeople(request.id)!;
 
-    // Уже был такой запрос и он ещё не обработан — не шлём повторное уведомление владельцу.
-    if (request.status === 'pending') {
+    // Уже был такой запрос и он ещё не обработан — не шлём повторное
+    // уведомление владельцу (см. createContactRequest: created=false для
+    // уже существующего pending-запроса, до этого различия оба случая
+    // возвращали status === 'pending' и слали дубликат уведомления).
+    if (created) {
       const renterName = [displayName(user.full_name, user.first_name), user.username ? `@${user.username}` : null]
         .filter(Boolean)
         .join(' ');
@@ -72,13 +76,13 @@ contactRequestsRouter.post('/', requireAgreementAccepted, writeLimiter(20, 10 * 
       if (owner) {
         await notifyUser(
           owner,
-          `📞 ${renterName} (${platformLabel(user.platform)}) хочет получить ваши контакты по объявлению ${full.brand} ${full.model} (${full.city}).\nПодтвердите, чтобы обменяться контактами.`,
+          `📞 ${esc(renterName)} (${platformLabel(user.platform)}) хочет получить ваши контакты по объявлению ${esc(full.brand)} ${esc(full.model)} (${esc(full.city)}).\nПодтвердите, чтобы обменяться контактами.`,
           ownerButtons
         );
       }
       await notifyUser(
         user,
-        `⏳ Запрос на контакты отправлен владельцу ${full.brand} ${full.model}. Как только он подтвердит — вы получите его телефон.`
+        `⏳ Запрос на контакты отправлен владельцу ${esc(full.brand)} ${esc(full.model)}. Как только он подтвердит — вы получите его телефон.`
       );
     }
 
@@ -106,7 +110,7 @@ contactRequestsRouter.post('/:id/confirm', async (req, res) => {
     if (renter) {
       await notifyUser(
         renter,
-        `✅ Владелец подтвердил запрос! ${full.brand} ${full.model} (${full.city})\nВладелец: ${displayName(full.owner_full_name, full.owner_first_name)}${full.owner_phone ? `, тел. ${full.owner_phone}` : ''}`
+        `✅ Владелец подтвердил запрос! ${esc(full.brand)} ${esc(full.model)} (${esc(full.city)})\nВладелец: ${esc(displayName(full.owner_full_name, full.owner_first_name))}${full.owner_phone ? `, тел. ${esc(full.owner_phone)}` : ''}`
       );
     }
     res.json({ request: full });
@@ -132,7 +136,7 @@ contactRequestsRouter.post('/:id/decline', async (req, res) => {
     if (full) {
       const renter = getUser(full.renter_id);
       if (renter) {
-        await notifyUser(renter, `❌ Владелец отклонил запрос на контакты по объявлению ${full.brand} ${full.model}.`);
+        await notifyUser(renter, `❌ Владелец отклонил запрос на контакты по объявлению ${esc(full.brand)} ${esc(full.model)}.`);
       }
     }
     res.json({ request });

@@ -16,6 +16,7 @@ const supportService_1 = require("../services/supportService");
 const webSessionService_1 = require("../services/webSessionService");
 const displayName_1 = require("../utils/displayName");
 const dateFormat_1 = require("../utils/dateFormat");
+const escapeBotHtml_1 = require("../utils/escapeBotHtml");
 /**
  * Простой лимит на сообщения в поддержку через бота: без него любой
  * пользователь может слать текст бесконечно, заваливая БД и администраторов.
@@ -149,16 +150,16 @@ function createBot() {
             const info = (0, bookingService_1.getBookingWithPeople)(bookingId);
             const renterButtons = dialogRows('💬 Написать арендатору', info.renter_username, info.renter_platform);
             await ctx.answerCbQuery('Бронирование подтверждено!');
-            await ctx.editMessageText(`✅ Вы подтвердили бронь.\n${info.brand} ${info.model}, ${(0, dateFormat_1.formatDate)(info.date_from)} — ${(0, dateFormat_1.formatDate)(info.date_to)}\n` +
-                `Арендатор (${(0, displayName_1.platformLabel)(info.renter_platform)}): ${(0, displayName_1.displayName)(info.renter_full_name, info.renter_first_name)}${info.renter_username ? ' (@' + info.renter_username + ')' : ''}\n` +
-                `Телефон: ${info.renter_phone ?? 'не указан'}\n` +
+            await ctx.editMessageText(`✅ Вы подтвердили бронь.\n${(0, escapeBotHtml_1.escapeBotHtml)(info.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(info.model)}, ${(0, dateFormat_1.formatDate)(info.date_from)} — ${(0, dateFormat_1.formatDate)(info.date_to)}\n` +
+                `Арендатор (${(0, displayName_1.platformLabel)(info.renter_platform)}): ${(0, escapeBotHtml_1.escapeBotHtml)((0, displayName_1.displayName)(info.renter_full_name, info.renter_first_name))}${info.renter_username ? ' (@' + (0, escapeBotHtml_1.escapeBotHtml)(info.renter_username) + ')' : ''}\n` +
+                `Телефон: ${info.renter_phone ? (0, escapeBotHtml_1.escapeBotHtml)(info.renter_phone) : 'не указан'}\n` +
                 `Сумма: ${info.total_price} ₽${info.deposit ? ` + залог ${info.deposit} ₽` : ''}`, {
                 parse_mode: 'HTML',
                 ...(renterButtons ? telegraf_1.Markup.inlineKeyboard(renterButtons) : {}),
             });
             const renterUser = (0, userService_1.getUser)(info.renter_id);
-            await (0, notifier_1.notifyUser)(renterUser, `✅ Владелец подтвердил бронь!\n${info.brand} ${info.model}, ${(0, dateFormat_1.formatDate)(info.date_from)} — ${(0, dateFormat_1.formatDate)(info.date_to)}\n` +
-                `Владелец (${(0, displayName_1.platformLabel)(info.owner_platform)}): ${(0, displayName_1.displayName)(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}\nСумма: ${info.total_price} ₽`);
+            await (0, notifier_1.notifyUser)(renterUser, `✅ Владелец подтвердил бронь!\n${(0, escapeBotHtml_1.escapeBotHtml)(info.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(info.model)}, ${(0, dateFormat_1.formatDate)(info.date_from)} — ${(0, dateFormat_1.formatDate)(info.date_to)}\n` +
+                `Владелец (${(0, displayName_1.platformLabel)(info.owner_platform)}): ${(0, escapeBotHtml_1.escapeBotHtml)((0, displayName_1.displayName)(info.owner_full_name, info.owner_first_name))}\nТелефон: ${info.owner_phone ? (0, escapeBotHtml_1.escapeBotHtml)(info.owner_phone) : 'не указан'}\nСумма: ${info.total_price} ₽`);
             await (0, notifier_1.notifyContractReady)(renterUser, bookingId);
             const ownerUser = (0, userService_1.getUser)(info.owner_id);
             await (0, notifier_1.notifyContractReady)(ownerUser, bookingId);
@@ -174,8 +175,8 @@ function createBot() {
             const info = (0, bookingService_1.getBookingWithPeople)(bookingId);
             (0, bookingService_1.declineBooking)(bookingId, ctx.from.id);
             await ctx.answerCbQuery('Бронирование отклонено');
-            await ctx.editMessageText(`❌ Вы отклонили бронь.\n${info.brand} ${info.model}, ${(0, dateFormat_1.formatDate)(info.date_from)} — ${(0, dateFormat_1.formatDate)(info.date_to)}\nАвтомобиль снова доступен на эти даты.`);
-            await (0, notifier_1.notifyUser)((0, userService_1.getUser)(info.renter_id), `❌ Владелец отклонил бронь на ${info.brand} ${info.model} (${(0, dateFormat_1.formatDate)(info.date_from)} — ${(0, dateFormat_1.formatDate)(info.date_to)}).\nПопробуйте найти другой автомобиль в приложении.`);
+            await ctx.editMessageText(`❌ Вы отклонили бронь.\n${(0, escapeBotHtml_1.escapeBotHtml)(info.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(info.model)}, ${(0, dateFormat_1.formatDate)(info.date_from)} — ${(0, dateFormat_1.formatDate)(info.date_to)}\nАвтомобиль снова доступен на эти даты.`);
+            await (0, notifier_1.notifyUser)((0, userService_1.getUser)(info.renter_id), `❌ Владелец отклонил бронь на ${(0, escapeBotHtml_1.escapeBotHtml)(info.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(info.model)} (${(0, dateFormat_1.formatDate)(info.date_from)} — ${(0, dateFormat_1.formatDate)(info.date_to)}).\nПопробуйте найти другой автомобиль в приложении.`);
         }
         catch (err) {
             const message = err instanceof bookingService_1.BookingError ? err.message : 'Не удалось отклонить бронирование';
@@ -189,14 +190,14 @@ function createBot() {
             const info = (0, contactRequestService_1.getContactRequestWithPeople)(requestId);
             const renterButtons = dialogRows('💬 Написать арендатору', info.renter_username, info.renter_platform);
             await ctx.answerCbQuery('Контакты подтверждены!');
-            await ctx.editMessageText(`✅ Вы подтвердили запрос на контакты.\n${info.brand} ${info.model} (${info.city})\n` +
-                `Арендатор (${(0, displayName_1.platformLabel)(info.renter_platform)}): ${(0, displayName_1.displayName)(info.renter_full_name, info.renter_first_name)}${info.renter_username ? ' (@' + info.renter_username + ')' : ''}\n` +
-                `Телефон: ${info.renter_phone ?? 'не указан'}`, {
+            await ctx.editMessageText(`✅ Вы подтвердили запрос на контакты.\n${(0, escapeBotHtml_1.escapeBotHtml)(info.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(info.model)} (${(0, escapeBotHtml_1.escapeBotHtml)(info.city)})\n` +
+                `Арендатор (${(0, displayName_1.platformLabel)(info.renter_platform)}): ${(0, escapeBotHtml_1.escapeBotHtml)((0, displayName_1.displayName)(info.renter_full_name, info.renter_first_name))}${info.renter_username ? ' (@' + (0, escapeBotHtml_1.escapeBotHtml)(info.renter_username) + ')' : ''}\n` +
+                `Телефон: ${info.renter_phone ? (0, escapeBotHtml_1.escapeBotHtml)(info.renter_phone) : 'не указан'}`, {
                 parse_mode: 'HTML',
                 ...(renterButtons ? telegraf_1.Markup.inlineKeyboard(renterButtons) : {}),
             });
-            await (0, notifier_1.notifyUser)((0, userService_1.getUser)(info.renter_id), `✅ Владелец подтвердил запрос!\n${info.brand} ${info.model} (${info.city})\n` +
-                `Владелец (${(0, displayName_1.platformLabel)(info.owner_platform)}): ${(0, displayName_1.displayName)(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}`);
+            await (0, notifier_1.notifyUser)((0, userService_1.getUser)(info.renter_id), `✅ Владелец подтвердил запрос!\n${(0, escapeBotHtml_1.escapeBotHtml)(info.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(info.model)} (${(0, escapeBotHtml_1.escapeBotHtml)(info.city)})\n` +
+                `Владелец (${(0, displayName_1.platformLabel)(info.owner_platform)}): ${(0, escapeBotHtml_1.escapeBotHtml)((0, displayName_1.displayName)(info.owner_full_name, info.owner_first_name))}\nТелефон: ${info.owner_phone ? (0, escapeBotHtml_1.escapeBotHtml)(info.owner_phone) : 'не указан'}`);
         }
         catch (err) {
             const message = err instanceof contactRequestService_1.ContactRequestError ? err.message : 'Не удалось подтвердить запрос';
@@ -209,8 +210,8 @@ function createBot() {
             const info = (0, contactRequestService_1.getContactRequestWithPeople)(requestId);
             (0, contactRequestService_1.declineContactRequest)(requestId, ctx.from.id);
             await ctx.answerCbQuery('Запрос отклонён');
-            await ctx.editMessageText(`❌ Вы отклонили запрос на контакты по объявлению ${info.brand} ${info.model}.`);
-            await (0, notifier_1.notifyUser)((0, userService_1.getUser)(info.renter_id), `❌ Владелец отклонил запрос на контакты по объявлению ${info.brand} ${info.model}.`);
+            await ctx.editMessageText(`❌ Вы отклонили запрос на контакты по объявлению ${(0, escapeBotHtml_1.escapeBotHtml)(info.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(info.model)}.`);
+            await (0, notifier_1.notifyUser)((0, userService_1.getUser)(info.renter_id), `❌ Владелец отклонил запрос на контакты по объявлению ${(0, escapeBotHtml_1.escapeBotHtml)(info.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(info.model)}.`);
         }
         catch (err) {
             const message = err instanceof contactRequestService_1.ContactRequestError ? err.message : 'Не удалось отклонить запрос';
@@ -261,7 +262,7 @@ function createBot() {
         ]
             .filter(Boolean)
             .join(' ');
-        await (0, notifier_1.notifyAdmins)(`🆘 <b>Сообщение в поддержку</b>\nОт: ${senderName} (ID ${ctx.from.id})${user?.phone ? `, ${user.phone}` : ''}\n\n${text}`, dialogRows('💬 Написать в ответ', ctx.from.username ?? null, 'telegram'));
+        await (0, notifier_1.notifyAdmins)(`🆘 <b>Сообщение в поддержку</b>\nОт: ${(0, escapeBotHtml_1.escapeBotHtml)(senderName)} (ID ${ctx.from.id})${user?.phone ? `, ${(0, escapeBotHtml_1.escapeBotHtml)(user.phone)}` : ''}\n\n${(0, escapeBotHtml_1.escapeBotHtml)(text)}`, dialogRows('💬 Написать в ответ', ctx.from.username ?? null, 'telegram'));
         ctx.reply('✅ Сообщение отправлено в поддержку. Мы ответим вам здесь, в этом чате.');
     });
     bot.catch((err) => {

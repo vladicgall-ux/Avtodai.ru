@@ -8,6 +8,7 @@ const notifier_1 = require("../bot/notifier");
 const maxNotifier_1 = require("../bot/maxNotifier");
 const userService_1 = require("../services/userService");
 const displayName_1 = require("../utils/displayName");
+const escapeBotHtml_1 = require("../utils/escapeBotHtml");
 /** Подтверждённые/завершённые брони, срок которых истёк, ещё не оценены арендатором и по которым напоминание ещё не отправлялось. */
 function listBookingsDueForRatingReminder() {
     return db_1.db
@@ -41,7 +42,7 @@ async function sendRatingReminders() {
     for (const b of due) {
         const renter = (0, userService_1.getUser)(b.renter_id);
         if (renter) {
-            const text = `🌟 Как прошла аренда ${b.brand} ${b.model} у владельца ${(0, displayName_1.displayName)(b.owner_full_name, b.owner_first_name)}?\nОцените аренду в приложении — это поможет другим арендаторам.`;
+            const text = `🌟 Как прошла аренда ${(0, escapeBotHtml_1.escapeBotHtml)(b.brand)} ${(0, escapeBotHtml_1.escapeBotHtml)(b.model)} у владельца ${(0, escapeBotHtml_1.escapeBotHtml)((0, displayName_1.displayName)(b.owner_full_name, b.owner_first_name))}?\nОцените аренду в приложении — это поможет другим арендаторам.`;
             const deepLink = config_1.config.webappUrl ? `${config_1.config.webappUrl}?tab=bookings` : undefined;
             if (renter.platform === 'telegram') {
                 const buttons = deepLink

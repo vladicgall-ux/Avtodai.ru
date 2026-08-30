@@ -7,6 +7,7 @@ const rateLimit_1 = require("../middleware/rateLimit");
 const supportService_1 = require("../../services/supportService");
 const notifier_1 = require("../../bot/notifier");
 const displayName_1 = require("../../utils/displayName");
+const escapeBotHtml_1 = require("../../utils/escapeBotHtml");
 exports.supportRouter = (0, express_1.Router)();
 // Специально без requireActiveUser: даже забаненный или неверифицированный
 // пользователь должен иметь возможность написать в поддержку и разобраться в ситуации.
@@ -24,6 +25,6 @@ exports.supportRouter.post('/', (0, rateLimit_1.writeLimiter)(8, 5 * 60000), asy
     const senderName = [(0, displayName_1.displayName)(user.full_name, user.first_name), user.username ? `@${user.username}` : null]
         .filter(Boolean)
         .join(' ');
-    await (0, notifier_1.notifyAdmins)(`🆘 <b>Сообщение в поддержку</b>\nОт: ${senderName} (ID ${user.telegram_id})${user.phone ? `, ${user.phone}` : ''}\n\n${message}`);
+    await (0, notifier_1.notifyAdmins)(`🆘 <b>Сообщение в поддержку</b>\nОт: ${(0, escapeBotHtml_1.escapeBotHtml)(senderName)} (ID ${user.telegram_id})${user.phone ? `, ${(0, escapeBotHtml_1.escapeBotHtml)(user.phone)}` : ''}\n\n${(0, escapeBotHtml_1.escapeBotHtml)(message)}`);
     res.status(201).json({ message: record });
 });
