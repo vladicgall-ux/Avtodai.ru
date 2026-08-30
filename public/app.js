@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '1';
+  const APP_VERSION = '4';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -204,7 +204,6 @@
     cities: [],
     activeTab: 'search',
     botUsername: null,
-    maxBotLink: null,
     bookingsSub: 'renter',
     adminSub: 'users',
   };
@@ -463,22 +462,16 @@
       document.getElementById('loginCodeBox').hidden = false;
       document.getElementById('loginCodeStartBtn').hidden = true;
 
-      if (!state.botUsername || !state.maxBotLink) {
+      if (!state.botUsername) {
         try {
           const cfg = await apiFetch('/config');
           state.botUsername = cfg.botUsername;
-          state.maxBotLink = cfg.maxBotLink;
         } catch (e) { /* ignore */ }
       }
       const tgLink = document.getElementById('loginOpenTelegramLink');
       if (state.botUsername) {
         tgLink.href = `https://t.me/${state.botUsername}`;
         tgLink.hidden = false;
-      }
-      const maxLink = document.getElementById('loginOpenMaxLink');
-      if (state.maxBotLink) {
-        maxLink.href = state.maxBotLink;
-        maxLink.hidden = false;
       }
 
       clearInterval(loginPollTimer);
@@ -1141,22 +1134,16 @@
       `;
       document.getElementById('logoutCard').hidden = platformMode() !== 'web';
 
-      if (!state.botUsername || !state.maxBotLink) {
+      if (!state.botUsername) {
         try {
           const cfg = await apiFetch('/config');
           state.botUsername = cfg.botUsername;
-          state.maxBotLink = cfg.maxBotLink;
         } catch (e) { /* ignore */ }
       }
       const supportLink = document.getElementById('supportTelegramLink');
       if (state.botUsername) {
         supportLink.href = `https://t.me/${state.botUsername}`;
         supportLink.hidden = false;
-      }
-      const supportMaxLink = document.getElementById('supportMaxLink');
-      if (state.maxBotLink) {
-        supportMaxLink.href = state.maxBotLink;
-        supportMaxLink.hidden = false;
       }
     } catch (err) {
       toast(err.message);
@@ -1406,7 +1393,6 @@
     try {
       const cfg = await apiFetch('/config');
       state.botUsername = cfg.botUsername;
-      state.maxBotLink = cfg.maxBotLink;
       const already = sessionStorage.getItem('appVersionReloadFor');
       if (cfg.appVersion && cfg.appVersion !== APP_VERSION && already !== cfg.appVersion) {
         sessionStorage.setItem('appVersionReloadFor', cfg.appVersion);

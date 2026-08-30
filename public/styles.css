@@ -459,16 +459,11 @@ input[type="date"], input[type="datetime-local"] {
   margin: 0 0 8px;
   font-size: 14px;
 }
-#loginOpenTelegramLink,
-#loginOpenMaxLink {
+#loginOpenTelegramLink {
   display: block;
   text-align: center;
   text-decoration: none;
   margin-bottom: 8px;
-}
-.max-icon {
-  border-radius: 5px;
-  display: block;
 }
 .login-code-row {
   display: flex;

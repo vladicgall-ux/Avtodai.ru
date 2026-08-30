@@ -6,15 +6,19 @@
   <title>АвтоДай.рф — Аренда авто от частных лиц по всей России</title>
   <link rel="icon" type="image/svg+xml" href="assets/emblem.svg" />
   <link rel="apple-touch-icon" href="assets/emblem.svg" />
-  <!-- Не все встроенные WebView (Telegram/MAX) честно соблюдают Cache-Control
-       с сервера — дублируем запрет кэширования на всякий случай мета-тегами. -->
+  <!-- Не все встроенные WebView честно соблюдают Cache-Control с сервера —
+       дублируем запрет кэширования на всякий случай мета-тегами. -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta name="description" content="АвтоДай.рф — сервис аренды автомобилей от частных лиц по всей России. Найдите авто рядом или сдайте свой." />
-  <link rel="stylesheet" href="styles.css?v=3" />
-  <script src="https://telegram.org/js/telegram-web-app.js" async></script>
-  <script src="https://st.max.ru/js/max-web-app.js" async></script>
+  <link rel="stylesheet" href="styles.css?v=4" />
+  <!-- Без async/defer намеренно: скрипт должен успеть выполниться и создать
+       window.Telegram.WebApp ДО того, как app.js (defer) начнёт проверять
+       платформу — иначе относительный порядок async- и defer-скриптов не
+       гарантирован, и внутри настоящего Telegram иногда ошибочно показывался
+       экран веб-входа по коду вместо автоматической авторизации по initData. -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <div id="toast" class="toast" hidden></div>
@@ -36,7 +40,7 @@
     </div>
   </div>
 
-  <!-- Экран входа для браузерной версии (вне Telegram/MAX Mini App) -->
+  <!-- Экран входа для браузерной версии (вне Telegram Mini App) -->
   <div id="browserLoginGate" class="gate-screen" hidden>
     <div class="card gate">
       <h3>Войдите, чтобы продолжить</h3>
@@ -44,19 +48,17 @@
 
       <div class="login-option-label">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#29a9eb"/><path d="M17.94 7.05l-1.98 9.34c-.15.66-.537.82-1.084.51l-3-2.21-1.447 1.394c-.16.16-.294.294-.6.294l.213-3.05 5.56-5.02c.242-.213-.054-.334-.373-.12l-6.87 4.33-2.96-.924c-.643-.203-.657-.643.136-.953l11.57-4.46c.537-.196 1.006.13.834.95z" fill="#fff"/></svg>
-        <svg class="max-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#6c5ce7"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="700" font-family="-apple-system,Arial,sans-serif" fill="#fff">M</text></svg>
-        <span>Telegram или MAX</span>
+        <span>Telegram</span>
       </div>
 
       <button type="button" class="btn" id="loginCodeStartBtn">Получить код для входа</button>
       <div id="loginCodeBox" hidden>
-        <p>Отправьте этот код боту в чате — в Telegram или в MAX:</p>
+        <p>Отправьте этот код боту в чате в Telegram:</p>
         <div class="login-code-row">
           <div class="login-code-text" id="loginCodeText"></div>
           <button type="button" class="btn secondary small" id="loginCodeCopyBtn">Копировать</button>
         </div>
         <a class="btn secondary" id="loginOpenTelegramLink" target="_blank" rel="noopener" hidden>Открыть чат в Telegram</a>
-        <a class="btn secondary" id="loginOpenMaxLink" target="_blank" rel="noopener" hidden style="margin-top:8px;">Открыть чат в MAX</a>
         <p class="login-code-status" id="loginCodeStatus">Ожидаем подтверждение…</p>
       </div>
     </div>
@@ -223,7 +225,6 @@
         <button type="button" class="btn" id="supportSendBtn" style="margin-top:10px;">Отправить в поддержку</button>
         <p style="margin:14px 0 8px;color:var(--hint);font-size:13px;">Или напишите напрямую в чат с ботом:</p>
         <a class="btn secondary" id="supportTelegramLink" href="#" target="_blank" rel="noopener" hidden>Написать в Telegram</a>
-        <a class="btn secondary" id="supportMaxLink" href="#" target="_blank" rel="noopener" hidden style="margin-top:8px;">Написать в MAX</a>
       </div>
 
       <div class="card" style="margin-top:12px;" id="logoutCard" hidden>
@@ -278,6 +279,6 @@
     <button class="tab-btn" data-tab="admin" id="adminTabBtn" hidden>🛠<span>Админ</span></button>
   </nav>
 
-  <script src="app.js?v=3" defer></script>
+  <script src="app.js?v=4" defer></script>
 </body>
 </html>
