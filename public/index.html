@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>АвтоДай.рф — Аренда авто от частных лиц по всей России</title>
   <link rel="icon" type="image/svg+xml" href="assets/emblem.svg" />
-  <link rel="apple-touch-icon" href="assets/emblem.svg" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+  <!-- iOS Safari игнорирует SVG для apple-touch-icon (только растр) — без
+       PNG-варианта значок при добавлении на экран «Домой» падал на дефолтную
+       серую плашку с одной буквой вместо логотипа. -->
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#33472c" />
   <!-- Не все встроенные WebView честно соблюдают Cache-Control с сервера —
        дублируем запрет кэширования на всякий случай мета-тегами. -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
