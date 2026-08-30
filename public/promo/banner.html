@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>АвтоДай.рф — промо-баннер</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { margin: 0; padding: 0; }
+  .banner {
+    width: 1200px;
+    height: 628px;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(120% 140% at 15% 15%, #3b9bff 0%, #2b6bff 45%, #1a3fb0 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  .glow {
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(60px);
+    opacity: 0.35;
+    background: #ffffff;
+  }
+</style>
+</head>
+<body>
+  <div class="banner text-white">
+    <div class="glow" style="width:420px;height:420px;top:-140px;right:-100px;"></div>
+    <div class="glow" style="width:300px;height:300px;bottom:-120px;left:40%;background:#00e0c6;opacity:0.25;"></div>
+
+    <div class="relative z-10 h-full flex items-center px-16">
+      <div class="max-w-[640px]">
+        <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-4 py-1.5 rounded-full text-sm font-semibold tracking-wide mb-6">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 12l2-6a3 3 0 0 1 2.8-2h8.4A3 3 0 0 1 19 6l2 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="12" width="20" height="7" rx="2.5" stroke="white" stroke-width="2"/><circle cx="7" cy="19" r="1.6" fill="white"/><circle cx="17" cy="19" r="1.6" fill="white"/></svg>
+          автодай.рф
+        </div>
+
+        <h1 class="text-[46px] leading-[1.08] font-extrabold mb-5">
+          Аренда авто от частных лиц<br/>по всей России
+        </h1>
+
+        <ul class="space-y-2.5 text-lg font-medium mb-8 text-white/95">
+          <li class="flex items-center gap-2"><span class="text-emerald-300">✓</span> Без комиссий компаний</li>
+          <li class="flex items-center gap-2"><span class="text-emerald-300">✓</span> Машины в любом городе РФ</li>
+          <li class="flex items-center gap-2"><span class="text-emerald-300">✓</span> Напрямую от владельцев</li>
+          <li class="flex items-center gap-2"><span class="text-emerald-300">✓</span> Сдай свой авто или найди машину за 5 минут</li>
+        </ul>
+
+        <div class="inline-flex items-center gap-3 bg-white text-[#1a3fb0] font-bold text-lg px-7 py-3.5 rounded-2xl shadow-xl">
+          Открыть автодай.рф →
+        </div>
+      </div>
+    </div>
+
+    <!-- Автомобильный силуэт справа -->
+    <svg class="absolute right-[-40px] bottom-[54px] opacity-95" width="560" height="260" viewBox="0 0 560 260" fill="none">
+      <ellipse cx="300" cy="235" rx="230" ry="18" fill="black" opacity="0.18"/>
+      <path d="M60 175 L100 110 Q120 85 155 85 L360 85 Q390 85 405 108 L440 175 Z" fill="#0e2a86"/>
+      <path d="M150 100 L180 100 Q195 100 202 112 L215 140 L150 140 Z" fill="#8fc7ff" opacity="0.9"/>
+      <path d="M225 100 L330 100 Q345 100 352 112 L363 140 L225 140 Z" fill="#8fc7ff" opacity="0.9"/>
+      <rect x="55" y="150" width="400" height="45" rx="14" fill="#123bab"/>
+      <circle cx="140" cy="200" r="34" fill="#0b1d3d"/>
+      <circle cx="140" cy="200" r="14" fill="#c9d8f5"/>
+      <circle cx="380" cy="200" r="34" fill="#0b1d3d"/>
+      <circle cx="380" cy="200" r="14" fill="#c9d8f5"/>
+      <rect x="30" y="160" width="26" height="14" rx="4" fill="#ffd54a"/>
+      <rect x="450" y="160" width="26" height="14" rx="4" fill="#ff5a5a"/>
+    </svg>
+  </div>
+</body>
+</html>

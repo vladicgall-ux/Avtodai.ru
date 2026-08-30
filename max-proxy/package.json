@@ -1,0 +1,24 @@
+{
+  "name": "avtodai-max-proxy",
+  "version": "1.0.0",
+  "description": "Лёгкий обратный прокси на РФ-регионе bothost — форвардит трафик Mini App для MAX на основной сервер АвтоДай.рф, без своей БД и бизнес-логики.",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "npm run build && node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.4"
+  },
+  "devDependencies": {
+    "ts-node-dev": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

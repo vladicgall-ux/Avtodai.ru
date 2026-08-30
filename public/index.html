@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>АвтоДай.рф — Аренда авто от частных лиц по всей России</title>
+  <link rel="icon" type="image/svg+xml" href="assets/emblem.svg" />
+  <link rel="apple-touch-icon" href="assets/emblem.svg" />
+  <!-- Не все встроенные WebView (Telegram/MAX) честно соблюдают Cache-Control
+       с сервера — дублируем запрет кэширования на всякий случай мета-тегами. -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="description" content="АвтоДай.рф — сервис аренды автомобилей от частных лиц по всей России. Найдите авто рядом или сдайте свой." />
+  <link rel="stylesheet" href="styles.css?v=1" />
+  <script src="https://telegram.org/js/telegram-web-app.js" async></script>
+  <script src="https://st.max.ru/js/max-web-app.js" async></script>
+</head>
+<body>
+  <div id="toast" class="toast" hidden></div>
+
+  <header class="banner">
+    <img src="assets/emblem.svg" alt="АвтоДай.рф" style="height:48px;width:48px;margin:10px auto;display:block;" />
+  </header>
+
+  <!-- Экран блокировки/гейтов внутри Mini App (бан, телефон, имя) -->
+  <div id="appGate" class="gate-screen" hidden>
+    <div class="card gate">
+      <h3 id="gateTitle"></h3>
+      <p id="gateText"></p>
+      <div id="gateNameForm" hidden>
+        <input type="text" id="gateNameInput" placeholder="Имя и фамилия" maxlength="100" />
+        <button class="btn" id="gateNameSubmitBtn" style="margin-top:10px;">Сохранить</button>
+      </div>
+      <button class="btn" id="gateActionBtn" hidden>Открыть чат с ботом</button>
+    </div>
+  </div>
+
+  <!-- Экран входа для браузерной версии (вне Telegram/MAX Mini App) -->
+  <div id="browserLoginGate" class="gate-screen" hidden>
+    <div class="card gate">
+      <h3>Войдите, чтобы продолжить</h3>
+      <p>Тот же аккаунт, что и в приложении — подтвердите его в чате с ботом (Telegram или MAX).</p>
+
+      <button type="button" class="btn" id="loginCodeStartBtn">Получить код для входа</button>
+      <div id="loginCodeBox" hidden>
+        <p>Отправьте этот код боту в чате — в Telegram или в MAX:</p>
+        <div class="login-code-row">
+          <div class="login-code-text" id="loginCodeText"></div>
+          <button type="button" class="btn secondary small" id="loginCodeCopyBtn">Копировать</button>
+        </div>
+        <a class="btn secondary" id="loginOpenTelegramLink" target="_blank" rel="noopener">Открыть чат в Telegram</a>
+        <p class="login-code-status" id="loginCodeStatus">Ожидаем подтверждение…</p>
+      </div>
+    </div>
+  </div>
+
+  <main id="app" class="app" hidden>
+
+    <!-- ПОИСК -->
+    <section id="tab-search" class="tab">
+      <div class="search-filters">
+        <input type="text" id="searchCity" list="cityList" placeholder="Город" maxlength="80" />
+        <select id="searchCarClass">
+          <option value="">Класс: любой</option>
+          <option value="economy">Эконом</option>
+          <option value="comfort">Комфорт</option>
+          <option value="business">Бизнес</option>
+          <option value="premium">Премиум</option>
+          <option value="suv">Внедорожник</option>
+          <option value="minivan">Минивэн</option>
+        </select>
+        <select id="searchTransmission">
+          <option value="">Коробка: любая</option>
+          <option value="manual">Механика</option>
+          <option value="automatic">Автомат</option>
+        </select>
+      </div>
+      <div class="search-filters">
+        <input type="text" id="searchBrand" placeholder="Марка" maxlength="60" />
+        <input type="number" id="searchMinPrice" placeholder="Цена от, ₽" min="0" />
+        <input type="number" id="searchMaxPrice" placeholder="Цена до, ₽" min="0" />
+      </div>
+      <div class="date-filter">
+        <input type="date" id="searchDateFrom" title="Дата с" />
+        <input type="date" id="searchDateTo" title="Дата по" />
+        <button type="button" class="btn secondary small" id="clearDatesBtn">Все даты</button>
+      </div>
+      <div class="search-filters">
+        <select id="searchSort">
+          <option value="price_asc">Сначала дешевле</option>
+          <option value="price_desc">Сначала дороже</option>
+          <option value="newest">Сначала новые</option>
+          <option value="rating">По рейтингу</option>
+        </select>
+        <label class="checkbox-label" style="flex:0 0 auto;">
+          <input type="checkbox" id="searchHasDeposit" />
+          Без залога
+        </label>
+      </div>
+      <div id="carsList" class="cards"></div>
+      <p id="carsEmpty" class="empty" hidden>Пока нет объявлений в этом городе. Загляните позже или сдайте свой автомобиль 🚗</p>
+    </section>
+
+    <!-- СДАТЬ АВТО -->
+    <section id="tab-lend" class="tab" hidden>
+      <div id="lendGate" class="card gate" hidden>
+        <h3 id="lendGateTitle">Подтвердите телефон</h3>
+        <p id="lendGateText">Чтобы разместить объявление, подтвердите номер телефона в чате с ботом — это защищает арендаторов от фейковых объявлений.</p>
+        <button class="btn" id="openBotFromLend">Открыть чат с ботом</button>
+      </div>
+
+      <form id="listingForm" class="card" hidden>
+        <h3>Новое объявление</h3>
+        <label>Марка
+          <input type="text" id="carBrand" placeholder="Например, Kia" required maxlength="60" />
+        </label>
+        <label>Модель
+          <input type="text" id="carModel" placeholder="Rio" required maxlength="60" />
+        </label>
+        <label>Год выпуска
+          <input type="number" id="carYear" min="1970" max="2027" required />
+        </label>
+        <label>Цвет
+          <input type="text" id="carColor" maxlength="40" placeholder="Белый" />
+        </label>
+        <label>Госномер
+          <input type="text" id="carPlate" required maxlength="20" placeholder="А123ВС174" />
+        </label>
+        <label>Город
+          <input type="text" id="carCity" list="cityList" required placeholder="Начните вводить город" maxlength="80" />
+        </label>
+        <label>Класс автомобиля
+          <select id="carClass">
+            <option value="economy">Эконом</option>
+            <option value="comfort">Комфорт</option>
+            <option value="business">Бизнес</option>
+            <option value="premium">Премиум</option>
+            <option value="suv">Внедорожник</option>
+            <option value="minivan">Минивэн</option>
+          </select>
+        </label>
+        <label>Коробка передач
+          <select id="carTransmission">
+            <option value="manual">Механика</option>
+            <option value="automatic">Автомат</option>
+          </select>
+        </label>
+        <label>Тип топлива
+          <select id="carFuelType">
+            <option value="petrol">Бензин</option>
+            <option value="diesel">Дизель</option>
+            <option value="hybrid">Гибрид</option>
+            <option value="electric">Электро</option>
+            <option value="gas">Газ</option>
+          </select>
+        </label>
+        <label>Количество мест
+          <input type="number" id="carSeats" min="1" max="9" value="5" required />
+        </label>
+        <label>Цена за сутки, ₽
+          <input type="number" id="carPricePerDay" min="0" max="1000000" required />
+        </label>
+        <label>Залог, ₽
+          <input type="number" id="carDeposit" min="0" max="5000000" value="0" />
+        </label>
+        <label>Минимальный срок аренды, суток
+          <input type="number" id="carMinRentalDays" min="1" max="90" value="1" />
+        </label>
+        <label>Лимит пробега, км/сутки (необязательно)
+          <input type="number" id="carMileageLimit" min="0" max="10000" />
+        </label>
+        <label>Ограничения (необязательно)
+          <textarea id="carRestrictions" maxlength="300" placeholder="Например, только для водителей от 23 лет со стажем от 3 лет"></textarea>
+        </label>
+        <label>Описание
+          <textarea id="carDescription" maxlength="1000" placeholder="Расскажите об автомобиле подробнее"></textarea>
+        </label>
+        <button type="submit" class="btn">Опубликовать объявление</button>
+      </form>
+
+      <div class="card" style="margin-top:12px;">
+        <h3>📋 Мои объявления</h3>
+        <div id="myListingsList" class="cards"></div>
+        <p id="myListingsEmpty" class="empty" hidden>У вас пока нет объявлений.</p>
+      </div>
+    </section>
+
+    <!-- МОИ БРОНИ -->
+    <section id="tab-bookings" class="tab" hidden>
+      <div class="direction-switch" id="bookingsSubSwitch">
+        <button type="button" class="dir-btn active" data-bookings-tab="renter">Как арендатор</button>
+        <button type="button" class="dir-btn" data-bookings-tab="owner">Как владелец</button>
+      </div>
+
+      <div id="bookingsRenterSection">
+        <div id="renterBookingsList" class="cards"></div>
+        <p id="renterBookingsEmpty" class="empty" hidden>У вас пока нет бронирований.</p>
+      </div>
+
+      <div id="bookingsOwnerSection" hidden>
+        <div class="stats-row" id="ownerStats"></div>
+        <div id="ownerBookingsList" class="cards"></div>
+        <p id="ownerBookingsEmpty" class="empty" hidden>Пока нет бронирований на ваши объявления.</p>
+      </div>
+    </section>
+
+    <!-- ПРОФИЛЬ -->
+    <section id="tab-profile" class="tab" hidden>
+      <div class="card" id="profileCard"></div>
+
+      <div class="card" style="margin-top:12px;">
+        <h3>🆘 Поддержка</h3>
+        <p style="margin:0 0 8px;color:var(--hint);font-size:13px;">Вопрос, жалоба или предложение — сообщение придёт администратору напрямую.</p>
+        <textarea id="supportMessage" maxlength="1000" placeholder="Напишите ваше сообщение..."></textarea>
+        <button type="button" class="btn" id="supportSendBtn" style="margin-top:10px;">Отправить в поддержку</button>
+        <p style="margin:14px 0 8px;color:var(--hint);font-size:13px;">Или напишите напрямую в чат с ботом:</p>
+        <a class="btn secondary" id="supportTelegramLink" href="#" target="_blank" rel="noopener" hidden>Написать в Telegram</a>
+      </div>
+
+      <div class="card" style="margin-top:12px;" id="logoutCard" hidden>
+        <button type="button" class="btn small secondary" id="logoutAllBtn">Выйти со всех устройств</button>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <a href="/legal/oferta.html" target="_blank" rel="noopener">Пользовательское соглашение сервиса автодай.рф</a><br/>
+        <a href="/legal/privacy.html" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;">Политика обработки персональных данных</a>
+      </div>
+    </section>
+
+    <!-- АДМИН -->
+    <section id="tab-admin" class="tab" hidden>
+      <div class="stats-row" id="adminStats"></div>
+
+      <div class="direction-switch" id="adminSubSwitch">
+        <button class="dir-btn active" data-admin-tab="users">Пользователи</button>
+        <button class="dir-btn" data-admin-tab="listings">Объявления</button>
+        <button class="dir-btn" data-admin-tab="bookings">Брони</button>
+        <button class="dir-btn" data-admin-tab="support">Поддержка</button>
+        <button class="dir-btn" data-admin-tab="broadcast">Рассылка</button>
+      </div>
+
+      <div id="adminUsersList" class="cards"></div>
+      <div id="adminListingsList" class="cards" hidden></div>
+      <div id="adminBookingsList" class="cards" hidden></div>
+      <div id="adminSupportList" class="cards" hidden></div>
+
+      <div id="adminBroadcastPanel" class="card" hidden>
+        <h3>📢 Рассылка всем пользователям</h3>
+        <p style="margin:0 0 8px;color:var(--hint);font-size:13px;">Сообщение придёт от имени бота каждому незаблокированному пользователю.</p>
+        <textarea id="broadcastMessage" maxlength="1000" placeholder="Текст сообщения..."></textarea>
+        <img id="broadcastPhotoPreview" alt="" style="display:none;width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin:10px 0;" />
+        <input type="file" id="broadcastPhotoInput" accept="image/jpeg,image/png,image/webp" />
+        <label class="checkbox-label" style="margin-top:10px;">
+          <input type="checkbox" id="broadcastPinInput" />
+          Закрепить у получателей
+        </label>
+        <button type="button" class="btn" id="broadcastSendBtn" style="margin-top:10px;">Отправить всем</button>
+      </div>
+    </section>
+  </main>
+
+  <datalist id="cityList"></datalist>
+
+  <nav class="tabbar" id="tabbar" hidden>
+    <button class="tab-btn active" data-tab="search">🔎<span>Поиск</span></button>
+    <button class="tab-btn" data-tab="lend">🔑<span>Сдать авто</span></button>
+    <button class="tab-btn" data-tab="bookings">🧾<span>Мои брони</span></button>
+    <button class="tab-btn" data-tab="profile">👤<span>Профиль</span></button>
+    <button class="tab-btn" data-tab="admin" id="adminTabBtn" hidden>🛠<span>Админ</span></button>
+  </nav>
+
+  <script src="app.js?v=1" defer></script>
+</body>
+</html>

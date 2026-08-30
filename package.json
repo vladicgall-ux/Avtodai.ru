@@ -1,0 +1,37 @@
+{
+  "name": "avtodai",
+  "version": "1.0.0",
+  "description": "АвтоДай.рф — P2P-аренда автомобилей напрямую между частными лицами. Telegram Mini App, MAX Mini App, веб и PWA.",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && cp src/db/schema.sql dist/db/schema.sql && cp src/db/cities.json dist/db/cities.json",
+    "start": "npm run build && node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@maxhub/max-bot-api": "^0.2.5",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^20.14.9",
+    "better-sqlite3": "^11.3.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0",
+    "multer": "^2.2.0",
+    "sharp": "^0.35.4",
+    "telegraf": "^4.16.3",
+    "typescript": "^5.5.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "ts-node-dev": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

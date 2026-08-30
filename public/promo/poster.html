@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>АвтоДай.рф — вертикальная афиша / Stories</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { margin: 0; padding: 0; }
+  .poster {
+    width: 1080px;
+    height: 1920px;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(140% 90% at 50% 0%, #3b9bff 0%, #2b6bff 40%, #0e1f66 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #fff;
+  }
+  .glow { position: absolute; border-radius: 999px; filter: blur(90px); }
+</style>
+</head>
+<body>
+  <div class="poster flex flex-col">
+    <div class="glow" style="width:620px;height:620px;top:-220px;left:-160px;background:#ffffff;opacity:0.22;"></div>
+    <div class="glow" style="width:520px;height:520px;bottom:120px;right:-140px;background:#00e0c6;opacity:0.25;"></div>
+
+    <div class="relative z-10 flex flex-col items-center text-center pt-24 px-14">
+      <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-5 py-2 rounded-full text-xl font-semibold mb-10">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 12l2-6a3 3 0 0 1 2.8-2h8.4A3 3 0 0 1 19 6l2 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="12" width="20" height="7" rx="2.5" stroke="white" stroke-width="2"/><circle cx="7" cy="19" r="1.6" fill="white"/><circle cx="17" cy="19" r="1.6" fill="white"/></svg>
+        автодай.рф
+      </div>
+
+      <h1 class="text-[72px] leading-[1.05] font-extrabold mb-8">
+        Аренда авто<br/>от частных лиц<br/>по всей России
+      </h1>
+
+      <p class="text-3xl font-medium text-white/90 mb-2">Без комиссий компаний</p>
+      <p class="text-3xl font-medium text-white/90 mb-2">Машины в любом городе РФ</p>
+      <p class="text-3xl font-medium text-white/90">Напрямую от владельцев</p>
+    </div>
+
+    <!-- Автомобильный силуэт по центру -->
+    <div class="relative z-10 flex-1 flex items-center justify-center">
+      <svg width="820" height="380" viewBox="0 0 560 260" fill="none">
+        <ellipse cx="300" cy="235" rx="230" ry="18" fill="black" opacity="0.2"/>
+        <path d="M60 175 L100 110 Q120 85 155 85 L360 85 Q390 85 405 108 L440 175 Z" fill="#ffffff"/>
+        <path d="M150 100 L180 100 Q195 100 202 112 L215 140 L150 140 Z" fill="#2b6bff" opacity="0.85"/>
+        <path d="M225 100 L330 100 Q345 100 352 112 L363 140 L225 140 Z" fill="#2b6bff" opacity="0.85"/>
+        <rect x="55" y="150" width="400" height="45" rx="14" fill="#f2f6ff"/>
+        <circle cx="140" cy="200" r="34" fill="#0b1d3d"/>
+        <circle cx="140" cy="200" r="14" fill="#c9d8f5"/>
+        <circle cx="380" cy="200" r="34" fill="#0b1d3d"/>
+        <circle cx="380" cy="200" r="14" fill="#c9d8f5"/>
+        <rect x="30" y="160" width="26" height="14" rx="4" fill="#ffd54a"/>
+        <rect x="450" y="160" width="26" height="14" rx="4" fill="#ff5a5a"/>
+      </svg>
+    </div>
+
+    <div class="relative z-10 flex flex-col items-center pb-28 px-14">
+      <p class="text-3xl font-bold mb-8 text-center">Сдай свой авто или найди машину за 5 минут</p>
+      <div class="inline-flex items-center gap-3 bg-white text-[#1a3fb0] font-extrabold text-3xl px-10 py-5 rounded-3xl shadow-2xl">
+        автодай.рф →
+      </div>
+    </div>
+  </div>
+</body>
+</html>
