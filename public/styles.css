@@ -311,10 +311,13 @@ label {
 }
 input, select, textarea {
   font-family: inherit;
-  /* Было поднято до 16px против авто-зума iOS Safari при фокусе на поле —
-     но у большинства пользователей Android, и там это просто увеличивало
-     все поля без всякой пользы. Вернули как было; компромисс сознательный. */
-  font-size: 15px;
+  /* 16px, не меньше: iOS Safari (и поэтому WKWebView, в котором открывается
+     Mini App на iPhone) автоматически зумит страницу при фокусе на любое
+     поле с вычисленным font-size < 16px и не всегда аккуратно возвращает
+     масштаб обратно — экран "прыгает" и версия ниже 16px на iOS реально
+     ломается. На Android разница на 1px визуально не заметна, так что
+     это не компромисс, а просто минимальный безопасный размер. */
+  font-size: 16px;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--border);
@@ -692,7 +695,10 @@ input[type="date"], input[type="datetime-local"] {
 .search-filters select, .search-filters input:not([type="checkbox"]) {
   flex: 1;
   min-width: 120px;
-  font-size: 13px;
+  /* 16px — не 13px, как раньше: см. комментарий у общего input,select,textarea
+     про авто-зум iOS Safari на фокусе поля меньше 16px. Фильтры поиска —
+     самое частое место тапа в приложении, здесь баг был особенно заметен. */
+  font-size: 16px;
   padding: 8px 10px;
 }
 

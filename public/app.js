@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '23';
+  const APP_VERSION = '24';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -2023,6 +2023,12 @@
       try {
         tg.ready();
         tg.expand();
+        // Без этого свайп вниз по контенту приложения (например, когда
+        // список уже проскроллен до самого верха) закрывает весь Mini App
+        // целиком — известный баг именно на iOS, где такой жест легко
+        // задеть случайно при обычной прокрутке. disableVerticalSwipes()
+        // появился не во всех версиях Bot API — поэтому feature-detect.
+        if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
         const syncColorScheme = () => {
           document.documentElement.style.colorScheme = tg.colorScheme === 'dark' ? 'dark' : 'light';
           if (tg.themeParams) {
