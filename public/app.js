@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '18';
+  const APP_VERSION = '19';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -227,6 +227,15 @@
     'Daewoo', 'SEAT', 'Alfa Romeo', 'Cadillac', 'Chrysler', 'Dodge', 'Genesis', 'Acura', 'Ravon', 'Zeekr',
     'Voyah', 'Livan', 'Belgee', 'Solaris', 'Kaiyi', 'Soueast', 'Hongqi', 'MG', 'BYD', 'NIO', 'XPeng',
     'Skywell', 'Forthing', 'Wey', 'ORA',
+    // Расширенный список — премиум/спорт-марки (для аренды на события) и
+    // марки, которые уже реально встречаются на рынке РФ, но не попали в
+    // основной список выше: больше китайских брендов, коммерческий
+    // транспорт, российские марки, электромобили.
+    'Rolls-Royce', 'Bentley', 'Maserati', 'Lamborghini', 'Ferrari', 'Aston Martin', 'McLaren', 'Bugatti',
+    'Lincoln', 'Buick', 'GMC', 'Rover', 'Tata', 'Mahindra', 'Iveco', 'Hino', 'Higer', 'Foton', 'Yutong',
+    'King Long', 'Li Auto', 'AITO', 'Denza', 'Roewe', 'Wuling', 'Baojun', 'DFM', 'Brilliance', 'Hawtai',
+    'ZX Auto', 'Landwind', 'Zotye', 'DFSK', 'Venucia', 'Trumpchi', 'Aiways', 'Polestar', 'Aurus', 'ЗИЛ',
+    'ИЖ', 'ТагАЗ', 'СеАЗ', 'ВИС',
   ];
 
   // Модели сгруппированы по марке — иначе автокомплит с плоским списком
@@ -234,33 +243,65 @@
   // списка (например, введена вручную) — тогда подсказки собираются из
   // моделей всех марок сразу, чтобы не остаться совсем без вариантов.
   const CAR_MODELS_BY_BRAND = {
-    'Lada': ['Vesta', 'Granta', 'Largus', 'Niva', 'XRAY', 'Kalina', 'Priora'],
-    'Toyota': ['Camry', 'Corolla', 'RAV4', 'Land Cruiser', 'Land Cruiser Prado', 'Hilux', 'C-HR', 'Highlander'],
-    'Kia': ['Rio', 'Optima', 'K5', 'Sportage', 'Cerato', 'Sorento', 'Soul', 'Seltos'],
-    'Hyundai': ['Solaris', 'Creta', 'Santa Fe', 'Tucson', 'Elantra', 'Accent', 'Sonata'],
-    'Volkswagen': ['Polo', 'Tiguan', 'Passat', 'Jetta', 'Golf', 'Touareg', 'Teramont'],
-    'Renault': ['Duster', 'Logan', 'Sandero', 'Arkana', 'Kaptur', 'Fluence', 'Megane'],
-    'Nissan': ['Qashqai', 'X-Trail', 'Almera', 'Terrano', 'Murano', 'Juke', 'Teana'],
-    'Skoda': ['Octavia', 'Rapid', 'Kodiaq', 'Karoq', 'Superb', 'Yeti'],
-    'Mitsubishi': ['Outlander', 'Lancer', 'ASX', 'Pajero Sport', 'Pajero', 'L200'],
-    'Mazda': ['CX-5', 'CX-3', 'CX-9', '3', '6', 'CX-30'],
-    'Ford': ['Focus', 'Fiesta', 'Kuga', 'Explorer', 'Mondeo', 'EcoSport'],
-    'Honda': ['CR-V', 'Civic', 'Accord', 'Pilot', 'HR-V'],
-    'Subaru': ['Forester', 'Outback', 'Impreza', 'XV', 'Legacy'],
-    'BMW': ['X5', 'X3', 'X1', '3 серии', '5 серии', '7 серии', 'X6'],
-    'Mercedes-Benz': ['E-Class', 'C-Class', 'GLC', 'GLE', 'S-Class', 'GLA', 'Vito'],
-    'Audi': ['A4', 'A6', 'Q5', 'Q7', 'A3', 'Q3'],
-    'Lexus': ['RX', 'NX', 'ES', 'LX', 'GX'],
-    'Volvo': ['XC60', 'XC90', 'S60', 'XC40'],
-    'Chery': ['Tiggo 7', 'Tiggo 8', 'Tiggo 4', 'Arrizo 5'],
-    'Haval': ['Jolion', 'F7', 'M6', 'Dargo', 'H6'],
-    'Geely': ['Coolray', 'Atlas', 'Emgrand', 'Monjaro'],
-    'Changan': ['CS35', 'CS55', 'Uni-K', 'Alsvin'],
+    'Lada': ['Vesta', 'Granta', 'Largus', 'Niva', 'Niva Travel', 'XRAY', 'Kalina', 'Priora', '2107', '2110', '2114', '4x4'],
+    'Toyota': ['Camry', 'Corolla', 'RAV4', 'Land Cruiser', 'Land Cruiser Prado', 'Hilux', 'C-HR', 'Highlander', 'Yaris', 'Avensis', 'Land Cruiser 200', 'Fortuner', 'Alphard'],
+    'Kia': ['Rio', 'Optima', 'K5', 'Sportage', 'Cerato', 'Sorento', 'Soul', 'Seltos', 'Picanto', 'Ceed', 'Mohave', 'Carnival', 'Stinger'],
+    'Hyundai': ['Solaris', 'Creta', 'Santa Fe', 'Tucson', 'Elantra', 'Accent', 'Sonata', 'i30', 'ix35', 'Palisade', 'Staria', 'Getz'],
+    'Volkswagen': ['Polo', 'Tiguan', 'Passat', 'Jetta', 'Golf', 'Touareg', 'Teramont', 'Multivan', 'Caddy', 'Transporter', 'Amarok', 'Arteon'],
+    'Renault': ['Duster', 'Logan', 'Sandero', 'Arkana', 'Kaptur', 'Fluence', 'Megane', 'Koleos', 'Scenic', 'Clio'],
+    'Nissan': ['Qashqai', 'X-Trail', 'Almera', 'Terrano', 'Murano', 'Juke', 'Teana', 'Patrol', 'Note', 'Navara', 'Pathfinder'],
+    'Skoda': ['Octavia', 'Rapid', 'Kodiaq', 'Karoq', 'Superb', 'Yeti', 'Fabia', 'Kamiq'],
+    'Mitsubishi': ['Outlander', 'Lancer', 'ASX', 'Pajero Sport', 'Pajero', 'L200', 'Colt', 'Eclipse Cross'],
+    'Mazda': ['CX-5', 'CX-3', 'CX-9', '3', '6', 'CX-30', 'CX-60', 'MX-5'],
+    'Ford': ['Focus', 'Fiesta', 'Kuga', 'Explorer', 'Mondeo', 'EcoSport', 'Transit', 'Ranger', 'Kaiser', 'Galaxy'],
+    'Honda': ['CR-V', 'Civic', 'Accord', 'Pilot', 'HR-V', 'Fit', 'Odyssey', 'Freed'],
+    'Suzuki': ['Vitara', 'SX4', 'Jimny', 'Swift', 'Grand Vitara', 'Baleno'],
+    'Subaru': ['Forester', 'Outback', 'Impreza', 'XV', 'Legacy', 'Levorg', 'Tribeca'],
+    'BMW': ['X5', 'X3', 'X1', '3 серии', '5 серии', '7 серии', 'X6', 'X4', 'X7', '1 серии', 'i3', 'i4'],
+    'Mercedes-Benz': ['E-Class', 'C-Class', 'GLC', 'GLE', 'S-Class', 'GLA', 'Vito', 'GLS', 'A-Class', 'Sprinter', 'V-Class', 'CLA'],
+    'Audi': ['A4', 'A6', 'Q5', 'Q7', 'A3', 'Q3', 'A8', 'Q8', 'A5', 'e-tron'],
+    'Lexus': ['RX', 'NX', 'ES', 'LX', 'GX', 'UX', 'IS', 'LS'],
+    'Volvo': ['XC60', 'XC90', 'S60', 'XC40', 'V60', 'S90'],
+    'Land Rover': ['Range Rover', 'Range Rover Sport', 'Range Rover Evoque', 'Discovery', 'Defender', 'Discovery Sport'],
+    'Jeep': ['Grand Cherokee', 'Wrangler', 'Compass', 'Cherokee', 'Renegade'],
+    'Porsche': ['Cayenne', 'Macan', 'Panamera', '911', 'Taycan'],
+    'Jaguar': ['F-Pace', 'XF', 'E-Pace', 'XE'],
+    'Infiniti': ['QX50', 'QX60', 'QX80', 'Q50', 'FX'],
+    'Chery': ['Tiggo 7', 'Tiggo 8', 'Tiggo 4', 'Arrizo 5', 'Tiggo 8 Pro', 'Tiggo 3'],
+    'Haval': ['Jolion', 'F7', 'M6', 'Dargo', 'H6', 'H9', 'F7x'],
+    'Geely': ['Coolray', 'Atlas', 'Emgrand', 'Monjaro', 'Tugella', 'Cityray'],
+    'Changan': ['CS35', 'CS55', 'Uni-K', 'Alsvin', 'CS75', 'Uni-V'],
     'Omoda': ['C5', 'S5'],
     'Jetour': ['X70', 'Dashing', 'X90'],
     'Exeed': ['TXL', 'LX', 'VX'],
-    'ГАЗ': ['Газель', 'Соболь', 'Волга'],
-    'УАЗ': ['Патриот', 'Хантер', 'Буханка'],
+    'GAC': ['GS4', 'GS8', 'Empow'],
+    'Tank': ['300', '500'],
+    'BAIC': ['X55', 'X7', 'U5'],
+    'JAC': ['S3', 'S5', 'JS4'],
+    'FAW': ['Bestune T77', 'Besturn'],
+    'Great Wall': ['Poer', 'Wingle'],
+    'MG': ['ZS', 'HS', '5', '3'],
+    'BYD': ['Song Plus', 'Han', 'Tang', 'Atto 3', 'Seal', 'Dolphin'],
+    'ГАЗ': ['Газель', 'Газель Next', 'Соболь', 'Волга', 'Валдай'],
+    'УАЗ': ['Патриот', 'Хантер', 'Буханка', 'Профи'],
+    'Москвич': ['3', '6', '8'],
+    'Genesis': ['G70', 'G80', 'GV70', 'GV80'],
+    'Cadillac': ['Escalade', 'XT5', 'CT5'],
+    'Chevrolet': ['Niva', 'Cruze', 'Aveo', 'Captiva', 'Tahoe', 'Cobalt'],
+    'Opel': ['Astra', 'Insignia', 'Mokka', 'Zafira'],
+    'Peugeot': ['308', '408', '3008', '5008', '2008'],
+    'Citroen': ['C4', 'C5 Aircross', 'Berlingo'],
+    'Fiat': ['500', 'Tipo', 'Doblo'],
+    'Isuzu': ['D-Max', 'MU-X'],
+    'SsangYong': ['Rexton', 'Korando', 'Tivoli', 'Actyon'],
+    'Datsun': ['on-DO', 'mi-DO'],
+    'Rolls-Royce': ['Phantom', 'Ghost', 'Cullinan', 'Wraith'],
+    'Bentley': ['Continental GT', 'Bentayga', 'Flying Spur'],
+    'Maserati': ['Ghibli', 'Levante', 'Quattroporte'],
+    'Lamborghini': ['Urus', 'Huracan', 'Aventador'],
+    'Ferrari': ['Roma', 'Portofino', '488'],
+    'Aston Martin': ['DB11', 'Vantage', 'DBX'],
+    'Aurus': ['Senat', 'Komendant'],
   };
   const CAR_MODELS_ALL = Object.values(CAR_MODELS_BY_BRAND).flat();
 
