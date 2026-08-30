@@ -2,7 +2,7 @@ import { Telegraf, Markup, Input } from 'telegraf';
 import path from 'path';
 import { config } from '../config';
 import { upsertUser, setPhoneVerified, getUser } from '../services/userService';
-import { setBotInstance, notifyUser, notifyAdmins, type NotifyButton } from './notifier';
+import { setBotInstance, notifyUser, notifyAdmins, notifyContractReady, type NotifyButton } from './notifier';
 import { confirmBooking, declineBooking, getBookingWithPeople, BookingError } from '../services/bookingService';
 import {
   confirmContactRequest,
@@ -188,9 +188,11 @@ export function createBot(): Telegraf {
       await notifyUser(
         renterUser,
         `✅ Владелец подтвердил бронь!\n${info.brand} ${info.model}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\n` +
-          `Владелец (${platformLabel(info.owner_platform)}): ${displayName(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}\nСумма: ${info.total_price} ₽` +
-          `\nСформируйте договор аренды и акт приёма-передачи в разделе брони в приложении.`
+          `Владелец (${platformLabel(info.owner_platform)}): ${displayName(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}\nСумма: ${info.total_price} ₽`
       );
+      await notifyContractReady(renterUser, bookingId);
+      const ownerUser = getUser(info.owner_id)!;
+      await notifyContractReady(ownerUser, bookingId);
     } catch (err) {
       const message = err instanceof BookingError ? err.message : 'Не удалось подтвердить бронирование';
       await ctx.answerCbQuery(message, { show_alert: true });

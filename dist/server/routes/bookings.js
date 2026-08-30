@@ -112,8 +112,10 @@ exports.bookingsRouter.post('/:id/confirm', async (req, res) => {
         const full = (0, bookingService_1.getBookingWithPeople)(booking.id);
         const renter = (0, userService_1.getUser)(full.renter_id);
         if (renter) {
-            await (0, notifier_1.notifyUser)(renter, `✅ Владелец подтвердил бронь!\n${full.brand} ${full.model}, ${(0, dateFormat_1.formatDate)(full.date_from)} — ${(0, dateFormat_1.formatDate)(full.date_to)}\nВладелец: ${full.owner_first_name}${full.owner_phone ? `, тел. ${full.owner_phone}` : ''}\nСформируйте договор аренды и акт приёма-передачи в разделе брони — это защитит обе стороны.`);
+            await (0, notifier_1.notifyUser)(renter, `✅ Владелец подтвердил бронь!\n${full.brand} ${full.model}, ${(0, dateFormat_1.formatDate)(full.date_from)} — ${(0, dateFormat_1.formatDate)(full.date_to)}\nВладелец: ${full.owner_first_name}${full.owner_phone ? `, тел. ${full.owner_phone}` : ''}`);
+            await (0, notifier_1.notifyContractReady)(renter, booking.id);
         }
+        await (0, notifier_1.notifyContractReady)(user, booking.id);
         res.json({ booking });
     }
     catch (err) {

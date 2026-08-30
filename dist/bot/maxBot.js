@@ -110,9 +110,12 @@ function createMaxBot() {
                     `Сумма: ${info.total_price} ₽${info.deposit ? ` + залог ${info.deposit} ₽` : ''}`,
                 format: 'html',
             });
-            await (0, notifier_1.notifyUser)((0, userService_1.getUser)(info.renter_id), `✅ Владелец подтвердил бронь!\n${info.brand} ${info.model}, ${(0, dateFormat_1.formatDate)(info.date_from)} — ${(0, dateFormat_1.formatDate)(info.date_to)}\n` +
-                `Владелец (${(0, displayName_1.platformLabel)(info.owner_platform)}): ${(0, displayName_1.displayName)(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}\nСумма: ${info.total_price} ₽` +
-                `\nСформируйте договор аренды и акт приёма-передачи в разделе брони в приложении.`);
+            const renterUser = (0, userService_1.getUser)(info.renter_id);
+            await (0, notifier_1.notifyUser)(renterUser, `✅ Владелец подтвердил бронь!\n${info.brand} ${info.model}, ${(0, dateFormat_1.formatDate)(info.date_from)} — ${(0, dateFormat_1.formatDate)(info.date_to)}\n` +
+                `Владелец (${(0, displayName_1.platformLabel)(info.owner_platform)}): ${(0, displayName_1.displayName)(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}\nСумма: ${info.total_price} ₽`);
+            await (0, notifier_1.notifyContractReady)(renterUser, bookingId);
+            const ownerUser = (0, userService_1.getUser)(info.owner_id);
+            await (0, notifier_1.notifyContractReady)(ownerUser, bookingId);
         }
         catch (err) {
             const message = err instanceof bookingService_1.BookingError ? err.message : 'Не удалось подтвердить бронирование';

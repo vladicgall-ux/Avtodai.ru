@@ -29,7 +29,7 @@ function markRatingReminderSent(bookingId) {
  * была подтверждена и оценки ещё нет. Отмечает бронь как «напоминание
  * отправлено» сразу после отправки, чтобы не слать повторно на каждом тике.
  *
- * Кнопка «Оценить аренду» ведёт на ?tab=mine — app.js при загрузке читает
+ * Кнопка «Оценить аренду» ведёт на ?tab=bookings — app.js при загрузке читает
  * этот параметр и сразу открывает «Мои брони», а не стартовый экран поиска.
  * В Telegram это web_app-кнопка (гарантированно открывает именно Mini App с
  * initData). В MAX — обычная ссылка: если MAX откроет её не как встроенный
@@ -42,7 +42,7 @@ async function sendRatingReminders() {
         const renter = (0, userService_1.getUser)(b.renter_id);
         if (renter) {
             const text = `🌟 Как прошла аренда ${b.brand} ${b.model} у владельца ${(0, displayName_1.displayName)(b.owner_full_name, b.owner_first_name)}?\nОцените аренду в приложении — это поможет другим арендаторам.`;
-            const deepLink = config_1.config.webappUrl ? `${config_1.config.webappUrl}?tab=mine` : undefined;
+            const deepLink = config_1.config.webappUrl ? `${config_1.config.webappUrl}?tab=bookings` : undefined;
             if (renter.platform === 'telegram') {
                 const buttons = deepLink
                     ? [[{ text: '⭐ Оценить аренду', web_app: { url: deepLink } }]]

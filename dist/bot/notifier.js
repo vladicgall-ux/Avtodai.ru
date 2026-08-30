@@ -7,6 +7,7 @@ exports.notifyPhoneReminder = notifyPhoneReminder;
 exports.notifyPhoto = notifyPhoto;
 exports.notifyAdmins = notifyAdmins;
 exports.notifyUser = notifyUser;
+exports.notifyContractReady = notifyContractReady;
 const telegraf_1 = require("telegraf");
 const config_1 = require("../config");
 const maxNotifier_1 = require("./maxNotifier");
@@ -91,4 +92,25 @@ async function notifyUser(user, text, buttonRows, pin) {
         return (0, maxNotifier_1.notifyMax)(user, text, buttonRows, pin);
     const telegramButtons = buttonRows?.map((row) => row.map((b) => ({ text: b.text, callback_data: b.action })));
     return notify(user.telegram_id, text, telegramButtons, pin);
+}
+/**
+ * Сообщение с готовым договором аренды сразу после подтверждения брони —
+ * пока договор не собирается автоматически в PDF и не рассылается файлом,
+ * это кнопка-диплинк, которая открывает уже заполненный сервисом договор
+ * прямо в приложении (`?tab=bookings&contract=<id>`, см. app.js::init()),
+ * откуда стороны печатают его или сохраняют как PDF и дозаполняют вручную
+ * поля, которые сервис не запрашивает (паспорт, ВУ, VIN, СТС).
+ *
+ * Без WEBAPP_URL диплинк не построить (нет ещё известного публичного
+ * домена) — тогда просто ничего не отправляем, а не шлём нерабочую ссылку.
+ */
+async function notifyContractReady(user, bookingId) {
+    if (!config_1.config.webappUrl)
+        return false;
+    const deepLink = `${config_1.config.webappUrl}?tab=bookings&contract=${bookingId}`;
+    const text = '📄 Договор аренды и акт приёма-передачи готовы. Откройте, распечатайте или сохраните как PDF — часть полей (паспорт, ВУ, VIN, СТС) заполните от руки при встрече.';
+    if (user.platform === 'max') {
+        return (0, maxNotifier_1.notifyMaxWithLink)(user, text, '📄 Открыть договор', deepLink);
+    }
+    return notify(user.telegram_id, text, [[{ text: '📄 Открыть договор', web_app: { url: deepLink } }]]);
 }

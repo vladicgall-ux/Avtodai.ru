@@ -3,7 +3,7 @@ import { config } from '../config';
 import { upsertMaxUser, setPhoneVerified, setFullName, maxStorageId, getUser } from '../services/userService';
 import { consumeLoginCode } from '../services/webSessionService';
 import { setMaxBotInstance } from './maxNotifier';
-import { notifyAdmins, notifyUser } from './notifier';
+import { notifyAdmins, notifyUser, notifyContractReady } from './notifier';
 import { createSupportMessage } from '../services/supportService';
 import { confirmBooking, declineBooking, getBookingWithPeople, BookingError } from '../services/bookingService';
 import {
@@ -128,12 +128,15 @@ export function createMaxBot(): Bot {
         format: 'html',
       });
 
+      const renterUser = getUser(info.renter_id)!;
       await notifyUser(
-        getUser(info.renter_id)!,
+        renterUser,
         `✅ Владелец подтвердил бронь!\n${info.brand} ${info.model}, ${formatDate(info.date_from)} — ${formatDate(info.date_to)}\n` +
-          `Владелец (${platformLabel(info.owner_platform)}): ${displayName(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}\nСумма: ${info.total_price} ₽` +
-          `\nСформируйте договор аренды и акт приёма-передачи в разделе брони в приложении.`
+          `Владелец (${platformLabel(info.owner_platform)}): ${displayName(info.owner_full_name, info.owner_first_name)}\nТелефон: ${info.owner_phone ?? 'не указан'}\nСумма: ${info.total_price} ₽`
       );
+      await notifyContractReady(renterUser, bookingId);
+      const ownerUser = getUser(info.owner_id)!;
+      await notifyContractReady(ownerUser, bookingId);
     } catch (err) {
       const message = err instanceof BookingError ? err.message : 'Не удалось подтвердить бронирование';
       await ctx.answerOnCallback({ notification: message });

@@ -11,7 +11,7 @@ import {
   getBookingWithPeople,
   BookingError,
 } from '../../services/bookingService';
-import { notifyUser, type ActionButton } from '../../bot/notifier';
+import { notifyUser, notifyContractReady, type ActionButton } from '../../bot/notifier';
 import { getUser } from '../../services/userService';
 import { displayName, platformLabel } from '../../utils/displayName';
 import { formatDate } from '../../utils/dateFormat';
@@ -141,9 +141,11 @@ bookingsRouter.post('/:id/confirm', async (req, res) => {
     if (renter) {
       await notifyUser(
         renter,
-        `✅ Владелец подтвердил бронь!\n${full.brand} ${full.model}, ${formatDate(full.date_from)} — ${formatDate(full.date_to)}\nВладелец: ${full.owner_first_name}${full.owner_phone ? `, тел. ${full.owner_phone}` : ''}\nСформируйте договор аренды и акт приёма-передачи в разделе брони — это защитит обе стороны.`
+        `✅ Владелец подтвердил бронь!\n${full.brand} ${full.model}, ${formatDate(full.date_from)} — ${formatDate(full.date_to)}\nВладелец: ${full.owner_first_name}${full.owner_phone ? `, тел. ${full.owner_phone}` : ''}`
       );
+      await notifyContractReady(renter, booking.id);
     }
+    await notifyContractReady(user, booking.id);
     res.json({ booking });
   } catch (err) {
     if (err instanceof BookingError) {

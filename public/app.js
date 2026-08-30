@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '11';
+  const APP_VERSION = '12';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -1544,7 +1544,20 @@
 
     hideAppGate();
     document.getElementById('adminTabBtn').hidden = !state.isAdmin;
+
+    // Диплинк из уведомлений бота (?tab=bookings&contract=<id>, см.
+    // bot/notifier.ts::notifyContractReady) — открывает нужную вкладку и,
+    // если передан ID брони, сразу показывает договор аренды, а не просто
+    // высаживает пользователя на экран поиска.
+    const params = new URLSearchParams(location.search);
+    const deepLinkTab = params.get('tab');
+    if (deepLinkTab && TABS.includes(deepLinkTab)) state.activeTab = deepLinkTab;
     showTab(state.activeTab);
+
+    const contractId = params.get('contract');
+    if (contractId && /^\d+$/.test(contractId)) {
+      openContract(contractId);
+    }
   }
 
   async function init() {
