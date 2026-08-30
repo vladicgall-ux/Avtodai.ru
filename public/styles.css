@@ -313,8 +313,20 @@ input, select, textarea {
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
+  /* Не var(--bg) и не var(--secondary-bg) намеренно: поле фильтра лежит
+     прямо на фоне страницы (var(--bg)), а поле формы — на фоне карточки
+     (var(--secondary-bg)) — использование любой из этих переменных сливало
+     бы поле с одним из двух фонов насмерть (оставалась только тонкая
+     рамка, разглядеть которую на экране телефона почти нереально —
+     пользователи принимали пустое место за отсутствующее поле). Белый
+     работает как контрастный фон в обоих контекстах.
+  */
+  background: #ffffff;
+  color: #14171f;
+}
+input::placeholder, textarea::placeholder {
+  color: #8a9086;
+  opacity: 1;
 }
 textarea { resize: vertical; min-height: 60px; }
 

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '7';
+  const APP_VERSION = '8';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -765,22 +765,46 @@
       description: document.getElementById('carDescription').value.trim(),
     };
     const form = e.target;
+    const photoFile = document.getElementById('carPhotoInput').files?.[0];
     await withAgreementGate(async () => {
       const { listing } = await apiFetch('/cars', { method: 'POST', body: JSON.stringify(payload) });
-      toast('Объявление опубликовано! Добавьте фото ниже.');
+
+      // Фото выбирали прямо в форме создания — сразу загружаем его к только
+      // что созданному объявлению, чтобы не заставлять искать отдельную
+      // кнопку загрузки после публикации (см. жалобу "не вижу добавить фото").
+      if (photoFile) {
+        try {
+          const formData = new FormData();
+          formData.append('photos', photoFile);
+          await apiUpload(`/cars/${listing.id}/photos`, formData);
+          toast('Объявление опубликовано вместе с фото!');
+        } catch (err) {
+          toast(`Объявление опубликовано, но фото загрузить не удалось: ${err.message}`);
+        }
+      } else {
+        toast('Объявление опубликовано! Фото можно добавить в любой момент ниже.');
+      }
+
       form.reset();
+      document.getElementById('carPhotoPreview').innerHTML = '';
       document.getElementById('carSeats').value = 5;
       document.getElementById('carMinRentalDays').value = 1;
       document.getElementById('carDeposit').value = 0;
       await loadMyListings();
-      // Сразу открываем панель загрузки фото для только что созданного
-      // объявления и прокручиваем к ней — иначе пользователь не понимает,
-      // где добавить фото, и уходит с пустым объявлением (см. жалобу
-      // "нет пункта добавить фото" во вкладке создания).
-      const toggleBtn = document.querySelector(`.photos-toggle-btn[data-listing-id="${listing.id}"]`);
-      toggleBtn?.click();
-      toggleBtn?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document
+        .querySelector(`.photos-toggle-btn[data-listing-id="${listing.id}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
+  });
+
+  document.getElementById('carPhotoInput').addEventListener('change', (e) => {
+    const preview = document.getElementById('carPhotoPreview');
+    preview.innerHTML = '';
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    preview.appendChild(img);
   });
 
   function myListingCardHtml(listing) {
