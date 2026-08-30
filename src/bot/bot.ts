@@ -1,4 +1,5 @@
-import { Telegraf, Markup } from 'telegraf';
+import { Telegraf, Markup, Input } from 'telegraf';
+import path from 'path';
 import { config } from '../config';
 import { upsertUser, setPhoneVerified, getUser } from '../services/userService';
 import { setBotInstance, notifyUser, notifyAdmins, type NotifyButton } from './notifier';
@@ -14,6 +15,10 @@ import { formatDate } from '../utils/dateFormat';
  * Храним в памяти процесса — этого достаточно для одного инстанса бота
  * (long polling, без масштабирования по репликам).
  */
+// Экспортируется — maxBot.ts переиспользует тот же файл для приветствия в MAX,
+// чтобы баннер не приходилось хранить/поддерживать в двух местах.
+export const bannerPath = path.join(__dirname, '..', '..', 'public', 'assets', 'banner.jpg');
+
 const SUPPORT_LIMIT = 5;
 const SUPPORT_WINDOW_MS = 60_000;
 const supportHits = new Map<number, number[]>();
@@ -91,18 +96,19 @@ export function createBot(): Telegraf {
       username: ctx.from.username,
     });
 
-    ctx.reply(
-      `🚗 <b>${config.serviceName}</b> — аренда авто от частных лиц по всей России\n\n` +
-        'Здесь владельцы публикуют объявления о сдаче автомобиля в аренду, а арендаторы бронируют даты напрямую, без прокатных компаний и посредников.\n\n' +
-        'Чтобы бронировать или публиковать объявления — сначала подтвердите номер телефона кнопкой ниже. ' +
-        'Это нужно, чтобы в приложении не было фейковых объявлений.',
-      {
+    ctx
+      .replyWithPhoto(Input.fromLocalFile(bannerPath), {
+        caption:
+          `🚗 <b>${config.serviceName}</b> — аренда авто от частных лиц по всей России\n\n` +
+          'Здесь владельцы публикуют объявления о сдаче автомобиля в аренду, а арендаторы бронируют даты напрямую, без прокатных компаний и посредников.\n\n' +
+          'Чтобы бронировать или публиковать объявления — сначала подтвердите номер телефона кнопкой ниже. ' +
+          'Это нужно, чтобы в приложении не было фейковых объявлений.',
         parse_mode: 'HTML',
         ...Markup.keyboard([Markup.button.contactRequest('📱 Подтвердить номер телефона')])
           .resize()
           .oneTime(),
-      }
-    );
+      })
+      .catch((err) => console.error('Не удалось отправить баннер в Telegram:', err));
 
     replyOpenApp(ctx);
   });

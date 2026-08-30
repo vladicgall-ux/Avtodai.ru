@@ -1,4 +1,4 @@
-import { Bot, Keyboard } from '@maxhub/max-bot-api';
+import { Bot, Keyboard, ImageAttachment } from '@maxhub/max-bot-api';
 import { config } from '../config';
 import { upsertMaxUser, setPhoneVerified, setFullName, maxStorageId, getUser } from '../services/userService';
 import { consumeLoginCode } from '../services/webSessionService';
@@ -8,6 +8,7 @@ import { createSupportMessage } from '../services/supportService';
 import { confirmBooking, declineBooking, getBookingWithPeople, BookingError } from '../services/bookingService';
 import { displayName, platformLabel } from '../utils/displayName';
 import { formatDate } from '../utils/dateFormat';
+import { bannerPath } from './bot';
 
 /** Тот же принцип, что и лимит поддержки в bot.ts — не даёт заваливать БД/админов текстом. */
 const SUPPORT_LIMIT = 5;
@@ -41,12 +42,24 @@ export function createMaxBot(): Bot {
 
   bot.on('bot_started', async (ctx) => {
     upsertMaxUser({ id: ctx.user.user_id, name: ctx.user.name, username: ctx.user.username });
-    await ctx.reply(
+    const greeting =
       `🚗 ${config.serviceName} — аренда авто от частных лиц по всей России\n\n` +
-        'Здесь владельцы публикуют объявления о сдаче автомобиля в аренду, а арендаторы бронируют даты напрямую.\n\n' +
-        'Чтобы бронировать или публиковать объявления — подтвердите номер телефона кнопкой ниже.',
-      { attachments: [Keyboard.inlineKeyboard([[Keyboard.button.requestContact('📱 Подтвердить номер телефона')]])] }
-    );
+      'Здесь владельцы публикуют объявления о сдаче автомобиля в аренду, а арендаторы бронируют даты напрямую.\n\n' +
+      'Чтобы бронировать или публиковать объявления — подтвердите номер телефона кнопкой ниже.';
+    const contactKeyboard = Keyboard.inlineKeyboard([[Keyboard.button.requestContact('📱 Подтвердить номер телефона')]]);
+    try {
+      const image = await ctx.api.uploadImage({ source: bannerPath });
+      await ctx.reply(greeting, {
+        attachments: [
+          new ImageAttachment('photos' in image ? { photos: image.photos } : { url: image.url }).toJson(),
+          contactKeyboard,
+        ],
+      });
+      return;
+    } catch (err) {
+      console.error('Не удалось отправить баннер в MAX:', err);
+    }
+    await ctx.reply(greeting, { attachments: [contactKeyboard] });
   });
 
   bot.on('message_created', async (ctx) => {

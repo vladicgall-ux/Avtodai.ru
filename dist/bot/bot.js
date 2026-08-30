@@ -1,7 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.bannerPath = void 0;
 exports.createBot = createBot;
 const telegraf_1 = require("telegraf");
+const path_1 = __importDefault(require("path"));
 const config_1 = require("../config");
 const userService_1 = require("../services/userService");
 const notifier_1 = require("./notifier");
@@ -16,6 +21,9 @@ const dateFormat_1 = require("../utils/dateFormat");
  * Храним в памяти процесса — этого достаточно для одного инстанса бота
  * (long polling, без масштабирования по репликам).
  */
+// Экспортируется — maxBot.ts переиспользует тот же файл для приветствия в MAX,
+// чтобы баннер не приходилось хранить/поддерживать в двух местах.
+exports.bannerPath = path_1.default.join(__dirname, '..', '..', 'public', 'assets', 'banner.jpg');
 const SUPPORT_LIMIT = 5;
 const SUPPORT_WINDOW_MS = 60000;
 const supportHits = new Map();
@@ -85,15 +93,18 @@ function createBot() {
             last_name: ctx.from.last_name,
             username: ctx.from.username,
         });
-        ctx.reply(`🚗 <b>${config_1.config.serviceName}</b> — аренда авто от частных лиц по всей России\n\n` +
-            'Здесь владельцы публикуют объявления о сдаче автомобиля в аренду, а арендаторы бронируют даты напрямую, без прокатных компаний и посредников.\n\n' +
-            'Чтобы бронировать или публиковать объявления — сначала подтвердите номер телефона кнопкой ниже. ' +
-            'Это нужно, чтобы в приложении не было фейковых объявлений.', {
+        ctx
+            .replyWithPhoto(telegraf_1.Input.fromLocalFile(exports.bannerPath), {
+            caption: `🚗 <b>${config_1.config.serviceName}</b> — аренда авто от частных лиц по всей России\n\n` +
+                'Здесь владельцы публикуют объявления о сдаче автомобиля в аренду, а арендаторы бронируют даты напрямую, без прокатных компаний и посредников.\n\n' +
+                'Чтобы бронировать или публиковать объявления — сначала подтвердите номер телефона кнопкой ниже. ' +
+                'Это нужно, чтобы в приложении не было фейковых объявлений.',
             parse_mode: 'HTML',
             ...telegraf_1.Markup.keyboard([telegraf_1.Markup.button.contactRequest('📱 Подтвердить номер телефона')])
                 .resize()
                 .oneTime(),
-        });
+        })
+            .catch((err) => console.error('Не удалось отправить баннер в Telegram:', err));
         replyOpenApp(ctx);
     });
     bot.command('app', (ctx) => {

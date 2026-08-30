@@ -11,6 +11,7 @@ const supportService_1 = require("../services/supportService");
 const bookingService_1 = require("../services/bookingService");
 const displayName_1 = require("../utils/displayName");
 const dateFormat_1 = require("../utils/dateFormat");
+const bot_1 = require("./bot");
 /** Тот же принцип, что и лимит поддержки в bot.ts — не даёт заваливать БД/админов текстом. */
 const SUPPORT_LIMIT = 5;
 const SUPPORT_WINDOW_MS = 60000;
@@ -39,9 +40,24 @@ function createMaxBot() {
     });
     bot.on('bot_started', async (ctx) => {
         (0, userService_1.upsertMaxUser)({ id: ctx.user.user_id, name: ctx.user.name, username: ctx.user.username });
-        await ctx.reply(`🚗 ${config_1.config.serviceName} — аренда авто от частных лиц по всей России\n\n` +
+        const greeting = `🚗 ${config_1.config.serviceName} — аренда авто от частных лиц по всей России\n\n` +
             'Здесь владельцы публикуют объявления о сдаче автомобиля в аренду, а арендаторы бронируют даты напрямую.\n\n' +
-            'Чтобы бронировать или публиковать объявления — подтвердите номер телефона кнопкой ниже.', { attachments: [max_bot_api_1.Keyboard.inlineKeyboard([[max_bot_api_1.Keyboard.button.requestContact('📱 Подтвердить номер телефона')]])] });
+            'Чтобы бронировать или публиковать объявления — подтвердите номер телефона кнопкой ниже.';
+        const contactKeyboard = max_bot_api_1.Keyboard.inlineKeyboard([[max_bot_api_1.Keyboard.button.requestContact('📱 Подтвердить номер телефона')]]);
+        try {
+            const image = await ctx.api.uploadImage({ source: bot_1.bannerPath });
+            await ctx.reply(greeting, {
+                attachments: [
+                    new max_bot_api_1.ImageAttachment('photos' in image ? { photos: image.photos } : { url: image.url }).toJson(),
+                    contactKeyboard,
+                ],
+            });
+            return;
+        }
+        catch (err) {
+            console.error('Не удалось отправить баннер в MAX:', err);
+        }
+        await ctx.reply(greeting, { attachments: [contactKeyboard] });
     });
     bot.on('message_created', async (ctx) => {
         const sender = ctx.message.sender;
