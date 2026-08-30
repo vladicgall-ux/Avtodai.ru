@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '28';
+  const APP_VERSION = '29';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -1881,10 +1881,10 @@
       const card = document.getElementById('profileCard');
       card.innerHTML = `
         <div class="profile-row"><span class="label">Имя</span><span id="profileNameValue">${escapeHtml(user.full_name || '—')}</span></div>
-        <div id="profileNameEditRow" style="margin:-6px 0 10px;">
+        <div id="profileNameEditRow" style="margin:10px 0;">
           <button type="button" class="btn secondary small" id="profileNameEditBtn">✏️ Изменить ФИО</button>
         </div>
-        <div id="profileNameEditForm" hidden style="margin:-6px 0 10px;">
+        <div id="profileNameEditForm" hidden style="margin:10px 0;">
           <input type="text" id="profileNameInput" placeholder="Фамилия Имя Отчество" maxlength="100" value="${escapeHtml(user.full_name || '')}" />
           <div style="display:flex; gap:8px; margin-top:8px;">
             <button type="button" class="btn secondary small" id="profileNameCancelBtn">Отмена</button>
