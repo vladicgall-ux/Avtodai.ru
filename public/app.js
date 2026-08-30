@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '27';
+  const APP_VERSION = '28';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -2167,7 +2167,13 @@
         // появился не во всех версиях Bot API — поэтому feature-detect.
         if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
         const syncColorScheme = () => {
-          document.documentElement.style.colorScheme = tg.colorScheme === 'dark' ? 'dark' : 'light';
+          const isDark = tg.colorScheme === 'dark';
+          document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+          // Telegram передаёт цвета фона/текста через tg.themeParams (ниже),
+          // но не присылает ничего для рамок/теней — без этого класса
+          // --border/--card-shadow оставались зашиты под светлый фон и
+          // становились невидимыми на тёмном (см. :root.theme-dark в styles.css).
+          document.documentElement.classList.toggle('theme-dark', isDark);
           if (tg.themeParams) {
             const root = document.documentElement.style;
             const map = {

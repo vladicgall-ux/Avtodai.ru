@@ -1,14 +1,18 @@
 :root {
   /* Без этого нативные виджеты (значок и текст в <input type="date">)
      всегда рисуются в светлой схеме браузера и становятся невидимыми
-     на тёмном фоне — переопределяется из JS под тему Telegram/MAX. */
+     на тёмном фоне — переопределяется из JS под тему Telegram (см.
+     syncColorScheme) и ниже через prefers-color-scheme для браузера/PWA. */
   color-scheme: light;
   /* Фирменная палитра АвтоДай.рф: светло-серый фон + тёмно-зелёные панели +
      кремовые кнопки, как на баннере (public/assets/banner.jpg). Внутри
-     Telegram/MAX эти значения — только фоллбэк: если платформа передала
-     свою тему через tg-theme-*/max-theme-*, app.js применяет её поверх
-     (см. applyThemeVars) — но вне Mini App (обычный браузер/PWA) этих
-     переменных не существует, и используется ровно эта, брендовая тема. */
+     Telegram эти значения — только фоллбэк: платформа передаёт свою тему
+     через tg.themeParams, и app.js подставляет их в --tg-theme-* (см.
+     syncColorScheme). У MAX Bridge API нет задокументированного способа
+     получить цвета темы, поэтому для MAX и для обычного браузера/PWA без
+     системной тёмной темы используется ровно эта, брендовая палитра —
+     а с системной тёмной темой браузер/PWA переключается через
+     prefers-color-scheme ниже. */
   --bg: var(--tg-theme-bg-color, #d6d8d0);
   --secondary-bg: var(--tg-theme-secondary-bg-color, #fbfaf3);
   --text: var(--tg-theme-text-color, #1c2417);
@@ -29,6 +33,47 @@
   --danger: #b3392f;
   --success: #3d6b2f;
   --card-shadow: 0 2px 10px rgba(30, 40, 25, 0.1), 0 1px 2px rgba(30, 40, 25, 0.08);
+  --top-highlight: rgba(255, 255, 255, 0.35);
+}
+
+/*
+ * Тёмная тема вне Mini App (обычный браузер/PWA с системной тёмной темой) —
+ * раньше её не было вовсе: страница всегда рисовалась светлой брендовой
+ * палитрой независимо от настроек ОС. CSS-переменные, которые app.js
+ * переопределяет инлайн-стилем для Telegram/MAX (--tg-theme-*), здесь не
+ * трогаем — инлайн-стиль всегда побеждает объявление в таблице стилей,
+ * так что для Mini App эта секция просто никогда не применяется.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: var(--tg-theme-bg-color, #171b14);
+    --secondary-bg: var(--tg-theme-secondary-bg-color, #232920);
+    --text: var(--tg-theme-text-color, #eef0e6);
+    --hint: var(--tg-theme-hint-color, #9aa08c);
+    --border: rgba(255, 255, 255, 0.14);
+    --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+    /* Белый блик 35% поверх тёмного фона выглядел бы светлой полосой-глюком
+       у самого верха экрана — на тёмном фоне блик должен высветлять едва
+       заметно, а не создавать контрастную границу. */
+    --top-highlight: rgba(255, 255, 255, 0.06);
+  }
+}
+
+/*
+ * Тёмная тема ВНУТРИ Mini App — Telegram сообщает её через tg.colorScheme
+ * и подставляет свои --tg-theme-* цвета (см. app.js::syncColorScheme), но
+ * не присылает ничего похожего на "цвет рамки" или "цвет тени" — border и
+ * card-shadow оставались зашитыми под светлый фон (чёрная рамка 16%
+ * прозрачности на тёмном фоне попросту не видна, а тень поверх фона темнее
+ * себя самой не отбрасывает вообще никакой видимой тени). app.js вешает
+ * класс theme-dark на <html> при tg.colorScheme === 'dark' — только под
+ * него переопределяем то, что телеграм-тема не покрывает.
+ */
+:root.theme-dark {
+  --border: rgba(255, 255, 255, 0.14);
+  --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --top-highlight: rgba(255, 255, 255, 0.06);
 }
 
 * { box-sizing: border-box; }
@@ -48,7 +93,7 @@ html, body {
      которая переопределяет --bg одним цветом), градиент поверх него почти
      не заметен глазу, но убирает ощущение "стены бетона". */
   background-color: var(--bg);
-  background-image: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 220px);
+  background-image: linear-gradient(180deg, var(--top-highlight) 0%, rgba(255,255,255,0) 220px);
   background-attachment: fixed;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
