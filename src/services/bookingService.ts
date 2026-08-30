@@ -74,6 +74,19 @@ export function getBooking(id: number): BookingRecord | undefined {
   return db.prepare('SELECT * FROM bookings WHERE id = ?').get(id) as BookingRecord | undefined;
 }
 
+/** Занятые (ожидающие подтверждения и подтверждённые) периоды по объявлению — для календаря доступности на карточке. */
+export function getBookedRanges(listingId: number): { dateFrom: string; dateTo: string }[] {
+  return (
+    db
+      .prepare(
+        `SELECT date_from AS dateFrom, date_to AS dateTo FROM bookings
+         WHERE listing_id = ? AND status IN ('pending','confirmed') AND date_to >= date('now')
+         ORDER BY date_from`
+      )
+      .all(listingId) as { dateFrom: string; dateTo: string }[]
+  );
+}
+
 export const cancelBooking = db.transaction((bookingId: number, renterId: number, reason?: string): BookingRecord => {
   const booking = db
     .prepare('SELECT * FROM bookings WHERE id = ? AND renter_id = ?')

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '14';
+  const APP_VERSION = '15';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -218,6 +218,79 @@
   const CONTACT_STATUS_LABELS = { pending: 'ожидает подтверждения', confirmed: 'подтверждено', declined: 'отклонено' };
   const LISTING_STATUS_LABELS = { active: 'активно', paused: 'приостановлено', deleted: 'удалено' };
 
+  const CAR_BRANDS = [
+    'Lada', 'Toyota', 'Hyundai', 'Kia', 'Volkswagen', 'Renault', 'Nissan', 'Skoda', 'BMW', 'Mercedes-Benz',
+    'Audi', 'Ford', 'Chevrolet', 'Mazda', 'Mitsubishi', 'Honda', 'Suzuki', 'Subaru', 'Peugeot', 'Citroen',
+    'Opel', 'Fiat', 'Volvo', 'Lexus', 'Infiniti', 'Land Rover', 'Jeep', 'Jaguar', 'Porsche', 'Mini', 'Smart',
+    'Chery', 'Geely', 'Haval', 'Changan', 'GAC', 'Exeed', 'Omoda', 'Jetour', 'Tank', 'FAW', 'Lifan',
+    'Great Wall', 'JAC', 'BAIC', 'Dongfeng', 'ГАЗ', 'УАЗ', 'Москвич', 'ЗАЗ', 'Datsun', 'SsangYong', 'Isuzu',
+    'Daewoo', 'SEAT', 'Alfa Romeo', 'Cadillac', 'Chrysler', 'Dodge', 'Genesis', 'Acura', 'Ravon', 'Zeekr',
+    'Voyah', 'Livan', 'Belgee', 'Solaris', 'Kaiyi', 'Soueast', 'Hongqi', 'MG', 'BYD', 'NIO', 'XPeng',
+    'Skywell', 'Forthing', 'Wey', 'ORA',
+  ];
+
+  const CAR_MODELS = [
+    'Vesta', 'Granta', 'Largus', 'Niva', 'XRAY', 'Camry', 'Corolla', 'RAV4', 'Land Cruiser',
+    'Land Cruiser Prado', 'Hilux', 'C-HR', 'Rio', 'Optima', 'Sportage', 'Cerato', 'Sorento', 'Soul', 'K5',
+    'Solaris', 'Creta', 'Santa Fe', 'Tucson', 'Elantra', 'Accent', 'Polo', 'Tiguan', 'Passat', 'Jetta',
+    'Golf', 'Touareg', 'Duster', 'Logan', 'Sandero', 'Arkana', 'Kaptur', 'Qashqai', 'X-Trail', 'Almera',
+    'Terrano', 'Murano', 'Focus', 'Fiesta', 'Kuga', 'Explorer', 'Octavia', 'Rapid', 'Kodiaq', 'Karoq',
+    'Outlander', 'Lancer', 'ASX', 'Pajero Sport', 'CX-5', 'CX-3', '3', '6', 'CR-V', 'Civic', 'Accord',
+    'Pilot', 'Forester', 'Outback', 'Impreza', 'XV', 'X5', 'X3', '3 серии', '5 серии', 'E-Class', 'C-Class',
+    'GLC', 'GLE', 'A4', 'A6', 'Q5', 'Q7', 'Tiggo 7', 'Tiggo 8', 'Tiggo 4', 'Jolion', 'F7', 'H6', 'M6',
+    'Coolray', 'Atlas',
+  ];
+
+  /**
+   * Свой автокомплит вместо нативного <datalist>: Mobile Safari (а значит и
+   * WKWebView, в котором открывается Telegram/MAX Mini App на iPhone) не
+   * показывает всплывающие подсказки datalist вообще — там, где приложение
+   * чаще всего и открывают, подсказки были бы попросту не видны.
+   */
+  function attachAutocomplete(inputEl, options) {
+    const wrap = document.createElement('div');
+    wrap.className = 'autocomplete-wrap';
+    inputEl.parentNode.insertBefore(wrap, inputEl);
+    wrap.appendChild(inputEl);
+    const box = document.createElement('div');
+    box.className = 'autocomplete-list';
+    box.hidden = true;
+    wrap.appendChild(box);
+
+    function render() {
+      const q = inputEl.value.trim().toLowerCase();
+      const matches = (q ? options.filter((o) => o.toLowerCase().includes(q)) : options).slice(0, 8);
+      if (!matches.length) {
+        box.hidden = true;
+        return;
+      }
+      box.innerHTML = matches.map((o) => `<div class="autocomplete-item">${escapeHtml(o)}</div>`).join('');
+      box.hidden = false;
+    }
+
+    inputEl.addEventListener('input', render);
+    inputEl.addEventListener('focus', render);
+    inputEl.addEventListener('blur', () => setTimeout(() => { box.hidden = true; }, 150));
+    box.addEventListener('mousedown', (e) => e.preventDefault());
+    box.addEventListener('click', (e) => {
+      const item = e.target.closest('.autocomplete-item');
+      if (!item) return;
+      inputEl.value = item.textContent;
+      box.hidden = true;
+      inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+
+  /** Показывает текст-подсказку внутри пустого <input type="date"> вместо того, чтобы браузер сам подставлял текущую дату. */
+  function attachDatePlaceholder(fieldId) {
+    const field = document.getElementById(fieldId);
+    const input = field.querySelector('input[type="date"]');
+    function sync() { field.classList.toggle('has-value', !!input.value); }
+    input.addEventListener('input', sync);
+    input.addEventListener('change', sync);
+    sync();
+  }
+
   function toDateStr(d) {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -339,6 +412,13 @@
   function isKnownCityName(name) {
     return state.cities.some((c) => c.name === name);
   }
+
+  attachAutocomplete(document.getElementById('searchBrand'), CAR_BRANDS);
+  attachAutocomplete(document.getElementById('searchModel'), CAR_MODELS);
+  attachAutocomplete(document.getElementById('carBrand'), CAR_BRANDS);
+  attachAutocomplete(document.getElementById('carModel'), CAR_MODELS);
+  attachDatePlaceholder('searchDateFromField');
+  attachDatePlaceholder('searchDateToField');
 
   // ---------- Tabs ----------
   const TABS = ['search', 'lend', 'bookings', 'profile', 'admin'];
@@ -720,6 +800,21 @@
         if (contactBtn.textContent !== '✅ Запрос отправлен') contactBtn.disabled = false;
       });
 
+      const busyBox = document.createElement('div');
+      busyBox.style.marginTop = '10px';
+      content.appendChild(busyBox);
+      let busyRanges = [];
+      apiFetch(`/cars/${id}/booked-dates`)
+        .then(({ ranges }) => {
+          busyRanges = ranges;
+          if (!ranges.length) return;
+          busyBox.innerHTML =
+            `<p class="comment">🚫 Занятые даты: ${ranges
+              .map((r) => `${formatDate(r.dateFrom)} — ${formatDate(r.dateTo)}`)
+              .join(', ')}</p>`;
+        })
+        .catch(() => { /* календарь занятости — необязательное дополнение, брони это не блокирует */ });
+
       const form = document.createElement('div');
       form.style.marginTop = '12px';
       form.innerHTML = `
@@ -748,6 +843,10 @@
         }
         if (dateTo < dateFrom) {
           toast('Дата окончания раньше даты начала');
+          return;
+        }
+        if (busyRanges.some((r) => r.dateFrom <= dateTo && r.dateTo >= dateFrom)) {
+          toast('На эти даты автомобиль уже занят — выберите другой период');
           return;
         }
         bookBtn.disabled = true;
@@ -854,6 +953,7 @@
         : `<button type="button" class="btn small activate-listing-btn" data-listing-id="${listing.id}">Активировать</button>`}
       <button type="button" class="btn secondary small delete-listing-btn" data-listing-id="${listing.id}">Удалить</button>
       <button type="button" class="btn small photos-toggle-btn" data-listing-id="${listing.id}">📷 Добавить фото</button>
+      <button type="button" class="btn small dates-toggle-btn" data-listing-id="${listing.id}">📅 Занятые даты</button>
     `;
     return `
       <div class="card car-card">
@@ -868,6 +968,7 @@
         </div>
         ${actions}
         <div class="photos-panel" id="photos-${listing.id}" hidden></div>
+        <div class="dates-panel" id="dates-${listing.id}" hidden></div>
       </div>`;
   }
 
@@ -909,6 +1010,26 @@
     `;
   }
 
+  // Даты, которые владелец закрыл вручную (например, сам пользуется машиной) —
+  // отдельно от уже подтверждённых/ожидающих броней, которые сюда не попадают
+  // и не могут быть сняты владельцем.
+  function datesPanelContent(listingId, ranges) {
+    const list = ranges.length
+      ? `<ul class="blocked-dates-list">${ranges
+          .map(
+            (r) =>
+              `<li>${formatDate(r.date_from)} — ${formatDate(r.date_to)} <button type="button" class="btn secondary small date-range-delete-btn" data-listing-id="${listingId}" data-range-id="${r.id}">✕</button></li>`
+          )
+          .join('')}</ul>`
+      : '<p class="empty" style="padding:4px;">Закрытых дат нет — авто считается свободным на все даты, кроме уже забронированных.</p>';
+    return `
+      ${list}
+      <label>Дата с<input type="date" class="date-range-from" data-listing-id="${listingId}" /></label>
+      <label style="margin-top:8px;">Дата по<input type="date" class="date-range-to" data-listing-id="${listingId}" /></label>
+      <button type="button" class="btn small date-range-add-btn" data-listing-id="${listingId}" style="margin-top:8px;">Закрыть эти даты</button>
+    `;
+  }
+
   document.getElementById('myListingsList').addEventListener('click', async (e) => {
     const pauseBtn = e.target.closest('.pause-listing-btn');
     const activateBtn = e.target.closest('.activate-listing-btn');
@@ -916,6 +1037,60 @@
     const photosBtn = e.target.closest('.photos-toggle-btn');
     const uploadBtn = e.target.closest('.photos-upload-btn');
     const deletePhotoBtn = e.target.closest('.photo-delete-btn');
+    const datesBtn = e.target.closest('.dates-toggle-btn');
+    const addRangeBtn = e.target.closest('.date-range-add-btn');
+    const deleteRangeBtn = e.target.closest('.date-range-delete-btn');
+
+    if (datesBtn) {
+      const id = datesBtn.dataset.listingId;
+      const panel = document.getElementById(`dates-${id}`);
+      if (!panel.hidden) { panel.hidden = true; return; }
+      panel.hidden = false;
+      panel.innerHTML = '<p class="empty">Загрузка...</p>';
+      try {
+        const { ranges } = await apiFetch(`/cars/${id}/blocked-dates`);
+        panel.innerHTML = datesPanelContent(id, ranges);
+      } catch (err) {
+        panel.innerHTML = `<p class="empty">${escapeHtml(err.message)}</p>`;
+      }
+      return;
+    }
+    if (addRangeBtn) {
+      const id = addRangeBtn.dataset.listingId;
+      const panel = document.getElementById(`dates-${id}`);
+      const dateFrom = panel.querySelector('.date-range-from').value;
+      const dateTo = panel.querySelector('.date-range-to').value;
+      if (!dateFrom || !dateTo) {
+        toast('Укажите обе даты');
+        return;
+      }
+      if (dateTo < dateFrom) {
+        toast('Дата окончания раньше даты начала');
+        return;
+      }
+      try {
+        await apiFetch(`/cars/${id}/blocked-dates`, { method: 'POST', body: JSON.stringify({ dateFrom, dateTo }) });
+        toast('Даты закрыты');
+        const { ranges } = await apiFetch(`/cars/${id}/blocked-dates`);
+        panel.innerHTML = datesPanelContent(id, ranges);
+      } catch (err) {
+        toast(err.message);
+      }
+      return;
+    }
+    if (deleteRangeBtn) {
+      const id = deleteRangeBtn.dataset.listingId;
+      const rangeId = deleteRangeBtn.dataset.rangeId;
+      try {
+        await apiFetch(`/cars/${id}/blocked-dates/${rangeId}/delete`, { method: 'POST' });
+        const panel = document.getElementById(`dates-${id}`);
+        const { ranges } = await apiFetch(`/cars/${id}/blocked-dates`);
+        panel.innerHTML = datesPanelContent(id, ranges);
+      } catch (err) {
+        toast(err.message);
+      }
+      return;
+    }
 
     if (pauseBtn || activateBtn) {
       const id = (pauseBtn || activateBtn).dataset.listingId;

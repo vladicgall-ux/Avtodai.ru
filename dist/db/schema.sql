@@ -78,6 +78,20 @@ CREATE TABLE IF NOT EXISTS bookings (
 CREATE INDEX IF NOT EXISTS idx_bookings_listing ON bookings (listing_id, status);
 CREATE INDEX IF NOT EXISTS idx_bookings_renter ON bookings (renter_id, status);
 
+-- Периоды, которые владелец вручную закрывает от бронирования (например,
+-- сам пользуется машиной эти даты) — отдельно от bookings, где даты заняты
+-- уже состоявшимся бронированием арендатора.
+CREATE TABLE IF NOT EXISTS listing_blocked_dates (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  listing_id  INTEGER NOT NULL REFERENCES car_listings(id) ON DELETE CASCADE,
+  date_from   TEXT NOT NULL, -- 'YYYY-MM-DD'
+  date_to     TEXT NOT NULL, -- 'YYYY-MM-DD', включительно
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  CHECK (date_to >= date_from)
+);
+
+CREATE INDEX IF NOT EXISTS idx_blocked_dates_listing ON listing_blocked_dates (listing_id);
+
 -- Запрос контактов — лёгкое действие «хочу списаться с владельцем», отдельное
 -- от бронирования (не требует выбора дат/суммы). Телефоны обеих сторон
 -- раскрываются только после того, как владелец подтвердит запрос — до этого

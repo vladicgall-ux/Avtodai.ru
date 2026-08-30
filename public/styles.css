@@ -672,6 +672,88 @@ input[type="date"], input[type="datetime-local"] {
   flex: 1;
 }
 
+/*
+ * Кастомный автокомплит для полей "Марка"/"Модель" вместо нативного
+ * <datalist> — Mobile Safari (а значит и WKWebView, в котором открывается
+ * Telegram/MAX Mini App на iPhone) никогда не показывает всплывающие
+ * подсказки datalist, только сам список остаётся доступен для чтения
+ * скринридером. Без этой обёртки подсказки были бы не видны именно там,
+ * где приложение чаще всего и открывают.
+ */
+.autocomplete-wrap {
+  position: relative;
+}
+.search-filters .autocomplete-wrap {
+  flex: 1;
+  min-width: 120px;
+}
+.autocomplete-wrap input {
+  width: 100%;
+}
+.autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 2px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  max-height: 190px;
+  overflow-y: auto;
+  z-index: 50;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+.autocomplete-item {
+  padding: 9px 12px;
+  font-size: 14px;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+.autocomplete-item:hover,
+.autocomplete-item:active {
+  background: #f0f0ea;
+}
+
+.date-field {
+  position: relative;
+  flex: 1;
+}
+.date-field input[type="date"] {
+  width: 100%;
+}
+.date-field .date-field-label {
+  position: absolute;
+  inset: 1px;
+  display: flex;
+  align-items: center;
+  padding-left: 11px;
+  color: #6b6b63;
+  font-size: 13px;
+  pointer-events: none;
+  background: #fff;
+  border-radius: 9px;
+  z-index: 1;
+}
+.date-field.has-value .date-field-label {
+  display: none;
+}
+
+.blocked-dates-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+}
+.blocked-dates-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
 .checkbox-label {
   flex-direction: row !important;
   align-items: center;

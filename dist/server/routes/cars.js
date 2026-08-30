@@ -12,6 +12,7 @@ const rateLimit_1 = require("../middleware/rateLimit");
 const cities_1 = require("../../db/cities");
 const carService_1 = require("../../services/carService");
 const statsService_1 = require("../../services/statsService");
+const bookingService_1 = require("../../services/bookingService");
 const upload_1 = require("../middleware/upload");
 const parseId_1 = require("../utils/parseId");
 exports.carsRouter = (0, express_1.Router)();
@@ -248,6 +249,56 @@ function setStatus(status) {
 exports.carsRouter.post('/:id/pause', setStatus('paused'));
 exports.carsRouter.post('/:id/activate', setStatus('active'));
 exports.carsRouter.post('/:id/delete', setStatus('deleted'));
+/** Список закрытых владельцем периодов (с ID — для управления в панели «Мои объявления»). */
+exports.carsRouter.get('/:id/blocked-dates', (req, res) => {
+    const { user } = req;
+    const listingId = (0, parseId_1.parseId)(req.params.id);
+    if (!listingId) {
+        res.status(400).json({ error: 'Некорректный ID' });
+        return;
+    }
+    const listing = (0, carService_1.getListingWithExtras)(listingId);
+    if (!listing || listing.owner_id !== user.telegram_id) {
+        res.status(403).json({ error: 'Это не ваше объявление' });
+        return;
+    }
+    res.json({ ranges: (0, carService_1.listBlockedRanges)(listingId) });
+});
+/** Владелец закрывает даты своего объявления от бронирования (например, сам будет пользоваться машиной). */
+exports.carsRouter.post('/:id/blocked-dates', (0, rateLimit_1.writeLimiter)(20, 10 * 60000), (req, res) => {
+    const { user } = req;
+    const listingId = (0, parseId_1.parseId)(req.params.id);
+    if (!listingId) {
+        res.status(400).json({ error: 'Некорректный ID' });
+        return;
+    }
+    const { dateFrom, dateTo } = req.body ?? {};
+    if (typeof dateFrom !== 'string' || typeof dateTo !== 'string' || !DATE_RE.test(dateFrom) || !DATE_RE.test(dateTo)) {
+        res.status(400).json({ error: 'Некорректные даты' });
+        return;
+    }
+    try {
+        const range = (0, carService_1.addBlockedRange)(listingId, user.telegram_id, dateFrom, dateTo);
+        res.json({ range });
+    }
+    catch (err) {
+        res.status(400).json({ error: err instanceof Error ? err.message : 'Не удалось закрыть даты' });
+    }
+});
+exports.carsRouter.post('/:id/blocked-dates/:blockId/delete', (req, res) => {
+    const { user } = req;
+    const blockId = (0, parseId_1.parseId)(req.params.blockId);
+    if (!blockId) {
+        res.status(400).json({ error: 'Некорректный ID' });
+        return;
+    }
+    const ok = (0, carService_1.removeBlockedRange)(blockId, user.telegram_id);
+    if (!ok) {
+        res.status(404).json({ error: 'Период не найден' });
+        return;
+    }
+    res.json({ ok: true });
+});
 exports.carsRouter.get('/:id', (req, res) => {
     const id = (0, parseId_1.parseId)(req.params.id);
     if (!id) {
@@ -260,4 +311,21 @@ exports.carsRouter.get('/:id', (req, res) => {
         return;
     }
     res.json({ listing });
+});
+/**
+ * Занятые периоды объявления — брони плюс закрытые владельцем даты — рендерятся
+ * на карточке как «занято», чтобы не пытаться забронировать даты, которые всё
+ * равно отклонит сервер. Обе категории отдаются одним списком: с точки зрения
+ * арендатора разницы нет — дата просто недоступна.
+ */
+exports.carsRouter.get('/:id/booked-dates', (req, res) => {
+    const id = (0, parseId_1.parseId)(req.params.id);
+    if (!id) {
+        res.status(400).json({ error: 'Некорректный ID' });
+        return;
+    }
+    const booked = (0, bookingService_1.getBookedRanges)(id);
+    const blocked = (0, carService_1.listBlockedRanges)(id).map((b) => ({ dateFrom: b.date_from, dateTo: b.date_to }));
+    const ranges = [...booked, ...blocked].sort((a, b) => a.dateFrom.localeCompare(b.dateFrom));
+    res.json({ ranges });
 });

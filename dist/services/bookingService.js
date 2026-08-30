@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sweepExpiredBookings = exports.cancelBooking = exports.createBooking = exports.BookingError = void 0;
 exports.getBooking = getBooking;
+exports.getBookedRanges = getBookedRanges;
 exports.confirmBooking = confirmBooking;
 exports.declineBooking = declineBooking;
 exports.getBookingWithPeople = getBookingWithPeople;
@@ -55,6 +56,14 @@ exports.createBooking = db_1.db.transaction((input) => {
 });
 function getBooking(id) {
     return db_1.db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
+}
+/** Занятые (ожидающие подтверждения и подтверждённые) периоды по объявлению — для календаря доступности на карточке. */
+function getBookedRanges(listingId) {
+    return db_1.db
+        .prepare(`SELECT date_from AS dateFrom, date_to AS dateTo FROM bookings
+         WHERE listing_id = ? AND status IN ('pending','confirmed') AND date_to >= date('now')
+         ORDER BY date_from`)
+        .all(listingId);
 }
 exports.cancelBooking = db_1.db.transaction((bookingId, renterId, reason) => {
     const booking = db_1.db

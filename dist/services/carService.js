@@ -11,6 +11,9 @@ exports.getListingPhoto = getListingPhoto;
 exports.deleteListingPhotoRecord = deleteListingPhotoRecord;
 exports.setListingStatus = setListingStatus;
 exports.isListingAvailable = isListingAvailable;
+exports.addBlockedRange = addBlockedRange;
+exports.removeBlockedRange = removeBlockedRange;
+exports.listBlockedRanges = listBlockedRanges;
 const db_1 = require("../db/db");
 function createListing(input) {
     const info = db_1.db
@@ -157,5 +160,42 @@ function isListingAvailable(listingId, dateFrom, dateTo, excludeBookingId) {
          AND date_from <= ? AND date_to >= ?
          AND (? IS NULL OR id != ?)`)
         .get(listingId, dateTo, dateFrom, excludeBookingId ?? null, excludeBookingId ?? null);
-    return row.n === 0;
+    if (row.n > 0)
+        return false;
+    const blocked = db_1.db
+        .prepare(`SELECT COUNT(*) AS n FROM listing_blocked_dates
+       WHERE listing_id = ? AND date_from <= ? AND date_to >= ?`)
+        .get(listingId, dateTo, dateFrom);
+    return blocked.n === 0;
+}
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** Владелец закрывает даты объявления от бронирования (например, сам пользуется машиной). */
+function addBlockedRange(listingId, ownerId, dateFrom, dateTo) {
+    if (!DATE_RE.test(dateFrom) || !DATE_RE.test(dateTo) || dateTo < dateFrom) {
+        throw new Error('Некорректный период');
+    }
+    const listing = getListing(listingId);
+    if (!listing || listing.owner_id !== ownerId) {
+        throw new Error('Это не ваш автомобиль');
+    }
+    const info = db_1.db
+        .prepare('INSERT INTO listing_blocked_dates (listing_id, date_from, date_to) VALUES (?, ?, ?)')
+        .run(listingId, dateFrom, dateTo);
+    return db_1.db.prepare('SELECT * FROM listing_blocked_dates WHERE id = ?').get(info.lastInsertRowid);
+}
+function removeBlockedRange(blockId, ownerId) {
+    const row = db_1.db
+        .prepare(`SELECT bd.id FROM listing_blocked_dates bd
+       JOIN car_listings c ON c.id = bd.listing_id
+       WHERE bd.id = ? AND c.owner_id = ?`)
+        .get(blockId, ownerId);
+    if (!row)
+        return false;
+    db_1.db.prepare('DELETE FROM listing_blocked_dates WHERE id = ?').run(blockId);
+    return true;
+}
+function listBlockedRanges(listingId) {
+    return db_1.db
+        .prepare(`SELECT * FROM listing_blocked_dates WHERE listing_id = ? AND date_to >= date('now') ORDER BY date_from`)
+        .all(listingId);
 }
