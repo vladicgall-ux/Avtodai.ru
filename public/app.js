@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '41';
+  const APP_VERSION = '42';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -232,8 +232,8 @@
         const close = openModal((content) => {
           content.innerHTML = `
             <h3 style="margin:6px 0;">Закройте номер на фото</h3>
-            <p class="comment">Если на фото виден госномер — передвиньте и растяните жёлтую рамку так, чтобы она полностью его закрывала, и нажмите «Замазать номер». Если номера не видно (фото сбоку/сзади без номера), нажмите «Без номера».</p>
-            <div class="plate-editor-wrap"><canvas class="plate-editor-canvas"></canvas><div class="plate-editor-box"><div class="plate-editor-resize"></div></div></div>
+            <p class="comment">Если на фото виден госномер — передвиньте, растяните и при необходимости разверните жёлтую рамку (кружок сверху) так, чтобы она полностью его закрывала, и нажмите «Замазать номер». Если номера не видно (фото сбоку/сзади без номера), нажмите «Без номера».</p>
+            <div class="plate-editor-wrap"><canvas class="plate-editor-canvas"></canvas><div class="plate-editor-box"><div class="plate-editor-rotate"></div><div class="plate-editor-resize"></div></div></div>
             <div style="display:flex; gap:8px; margin-top:12px;">
               <button type="button" class="btn secondary" id="plateSkipBtn">Без номера</button>
               <button type="button" class="btn" id="plateApplyBtn">Замазать номер</button>
@@ -254,12 +254,17 @@
 
           // Рамка по умолчанию — нижняя центральная зона кадра, где чаще
           // всего оказывается передний номер на фото машины анфас.
-          const rect = { xPct: 0.30, yPct: 0.70, wPct: 0.40, hPct: 0.14 };
+          // rotationDeg — угол разворота рамки: если машина сфотографирована
+          // не строго анфас, а под углом (3/4 ракурс), номер на фото тоже
+          // идёт под углом, и прямоугольник без разворота не может его
+          // закрыть целиком без лишнего захвата фона.
+          const rect = { xPct: 0.30, yPct: 0.70, wPct: 0.40, hPct: 0.14, rotationDeg: 0 };
           function renderBox() {
             box.style.left = `${rect.xPct * 100}%`;
             box.style.top = `${rect.yPct * 100}%`;
             box.style.width = `${rect.wPct * 100}%`;
             box.style.height = `${rect.hPct * 100}%`;
+            box.style.transform = `rotate(${rect.rotationDeg}deg)`;
           }
           renderBox();
 
@@ -271,18 +276,43 @@
           box.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             const isResize = e.target.classList.contains('plate-editor-resize');
+            const isRotate = e.target.classList.contains('plate-editor-rotate');
             const start = pointerPct(e);
-            dragging = { isResize, startX: start.x, startY: start.y, orig: { ...rect } };
+            dragging = { isResize, isRotate, startX: start.x, startY: start.y, orig: { ...rect } };
+            if (isRotate) {
+              const r = wrap.getBoundingClientRect();
+              dragging.center = {
+                x: r.left + (rect.xPct + rect.wPct / 2) * r.width,
+                y: r.top + (rect.yPct + rect.hPct / 2) * r.height,
+              };
+              dragging.startAngle = Math.atan2(e.clientY - dragging.center.y, e.clientX - dragging.center.x);
+            }
             box.setPointerCapture(e.pointerId);
           });
           box.addEventListener('pointermove', (e) => {
             if (!dragging) return;
+            if (dragging.isRotate) {
+              const curAngle = Math.atan2(e.clientY - dragging.center.y, e.clientX - dragging.center.x);
+              const deltaDeg = (curAngle - dragging.startAngle) * (180 / Math.PI);
+              rect.rotationDeg = Math.round(dragging.orig.rotationDeg + deltaDeg);
+              renderBox();
+              return;
+            }
             const cur = pointerPct(e);
             const dx = cur.x - dragging.startX;
             const dy = cur.y - dragging.startY;
             if (dragging.isResize) {
-              rect.wPct = Math.min(0.95 - rect.xPct, Math.max(0.08, dragging.orig.wPct + dx));
-              rect.hPct = Math.min(0.6, Math.max(0.05, dragging.orig.hPct + dy));
+              // Ресайз применяется в собственных (неразвёрнутых) осях рамки —
+              // экранный вектор перетаскивания разворачиваем на -rotationDeg,
+              // иначе после поворота рамки хват "тянул" бы не в ту сторону.
+              const r = wrap.getBoundingClientRect();
+              const dxPx = dx * r.width;
+              const dyPx = dy * r.height;
+              const theta = -(dragging.orig.rotationDeg || 0) * (Math.PI / 180);
+              const localDxPx = dxPx * Math.cos(theta) - dyPx * Math.sin(theta);
+              const localDyPx = dxPx * Math.sin(theta) + dyPx * Math.cos(theta);
+              rect.wPct = Math.min(0.95 - rect.xPct, Math.max(0.08, dragging.orig.wPct + localDxPx / r.width));
+              rect.hPct = Math.min(0.6, Math.max(0.05, dragging.orig.hPct + localDyPx / r.height));
             } else {
               rect.xPct = Math.min(1 - rect.wPct, Math.max(0, dragging.orig.xPct + dx));
               rect.yPct = Math.min(1 - rect.hPct, Math.max(0, dragging.orig.yPct + dy));
@@ -298,11 +328,15 @@
           content.querySelector('#plateApplyBtn').addEventListener('click', () => {
             const plateImg = new Image();
             plateImg.onload = () => {
-              const px = rect.xPct * canvas.width;
-              const py = rect.yPct * canvas.height;
               const pw = rect.wPct * canvas.width;
               const ph = rect.hPct * canvas.height;
-              ctx.drawImage(plateImg, px, py, pw, ph);
+              const cx = (rect.xPct + rect.wPct / 2) * canvas.width;
+              const cy = (rect.yPct + rect.hPct / 2) * canvas.height;
+              ctx.save();
+              ctx.translate(cx, cy);
+              ctx.rotate((rect.rotationDeg || 0) * (Math.PI / 180));
+              ctx.drawImage(plateImg, -pw / 2, -ph / 2, pw, ph);
+              ctx.restore();
               canvas.toBlob(
                 (blob) => {
                   close();

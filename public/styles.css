@@ -734,6 +734,32 @@ input[type="date"], input[type="datetime-local"] {
   cursor: nwse-resize;
   touch-action: none;
 }
+/* Разворот рамки под угол машины на фото (3/4 ракурс) — держатель торчит
+   сверху от центра и вращается вместе с рамкой, поэтому визуально всегда
+   указывает направление "вверх" самой рамки. */
+.plate-editor-rotate {
+  position: absolute;
+  left: 50%;
+  top: -28px;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  background: #ffcc00;
+  border: 2px solid #33472c;
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+}
+.plate-editor-rotate::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 2px;
+  height: 12px;
+  background: #ffcc00;
+  transform: translateX(-50%);
+}
 
 .agreement-box {
   background: var(--bg);
