@@ -926,9 +926,19 @@ input[type="date"], input[type="datetime-local"] {
   position: relative;
   flex: 1;
   min-width: 120px;
+  /* iOS Safari иногда не сжимает нативный контрол <input type="date"> до
+     ширины flex-элемента и рисует его шире, чем позволяет колонка — из-за
+     этого вторая колонка съезжала за край экрана. overflow:hidden обрезает
+     этот визуальный вылет вместо того, чтобы раздувать всю строку. */
+  overflow: hidden;
 }
 .date-field input[type="date"] {
   width: 100%;
+  /* Явный min-width: 0 — без него браузер иногда берёт «естественную»
+     минимальную ширину нативного контрола вместо доступной ширины
+     flex-элемента, и колонки с датами перестают совпадать по ширине с
+     остальными строками фильтра. */
+  min-width: 0;
 }
 .date-field .date-field-label {
   position: absolute;
