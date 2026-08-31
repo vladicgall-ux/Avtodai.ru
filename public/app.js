@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '39';
+  const APP_VERSION = '40';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {

@@ -854,11 +854,10 @@ input[type="date"], input[type="datetime-local"] {
   padding: 8px 10px;
 }
 
-.date-filter {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-}
+/* .date-filter теперь всегда используется вместе с .search-filters (тот
+   задаёт flex/gap/отступ) — здесь только то, что специфично для дат, чтобы
+   строка с датами по ширине колонок точно совпадала со строками фильтров
+   выше и ниже неё. */
 .date-filter input[type="date"] {
   flex: 1;
 }
@@ -926,6 +925,7 @@ input[type="date"], input[type="datetime-local"] {
 .date-field {
   position: relative;
   flex: 1;
+  min-width: 120px;
 }
 .date-field input[type="date"] {
   width: 100%;
