@@ -305,6 +305,12 @@ button, .dir-btn, .tab-btn, a.btn {
 .photo-carousel.single .car-photo {
   width: 100%;
   max-width: none;
+  /* Одно фото — не вписываем его в чужое соотношение сторон вовсе (ни cover,
+     ни contain): показываем в его собственных пропорциях на всю ширину, без
+     обрезки машины и без белых полос от несовпадения рамки и кадра. */
+  aspect-ratio: auto;
+  height: auto;
+  object-fit: initial;
 }
 .car-photo-thumb {
   width: 84px;
