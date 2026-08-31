@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '43';
+  const APP_VERSION = '44';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -217,122 +217,6 @@
    * null — пользователь закрыл редактор крестиком, не выбрав ни одно из
    * действий (тогда вызывающий код должен отменить загрузку).
    */
-  /**
-   * Эвристический поиск номерного знака на фото — без тяжёлой ML-модели
-   * (WebView мини-аппа на телефоне для неё не лучшее место). Номер почти
-   * всегда заметно светлее своего непосредственного окружения (бампер,
-   * асфальт, решётка радиатора) и представляет собой сплошной прямоугольник
-   * нужных пропорций — поэтому ищем связные компоненты «ярких» пикселей и
-   * выбираем среди них ту, что больше всего похожа на номер по форме.
-   *
-   * Первая версия (скользящее окно, максимизирующее плотность контуров)
-   * была протестирована на синтетических примерах и системно НЕДООЦЕНИВАЛА
-   * размер номера — окно ужималось к самой "текстурной" части (буквам),
-   * не покрывая всю табличку целиком, что для функции приватности
-   * недопустимо: лучше случайно взять с запасом, чем оставить край номера
-   * открытым. Поиск по связным компонентам избавлен от этого перекоса,
-   * поскольку опирается на реальную границу светлого пятна, а не на
-   * плотность текстуры внутри окна.
-   *
-   * Возвращает {xPct, yPct, wPct, hPct} лучшей найденной области или null,
-   * если ни один кандидат не набрал достаточно уверенный балл (например,
-   * номер сливается по яркости с белым кузовом) — тогда вызывающий код
-   * должен подставить обычную рамку по умолчанию, а не гадать вслепую.
-   */
-  function detectPlateRect(sourceCanvas) {
-    const workW = 240;
-    const workH = Math.max(1, Math.round((sourceCanvas.height / sourceCanvas.width) * workW));
-    const work = document.createElement('canvas');
-    work.width = workW;
-    work.height = workH;
-    const wctx = work.getContext('2d', { willReadFrequently: true });
-    wctx.drawImage(sourceCanvas, 0, 0, workW, workH);
-    let data;
-    try {
-      data = wctx.getImageData(0, 0, workW, workH).data;
-    } catch (e) {
-      return null; // canvas затайнен (не должно случаться для своих File-объектов, но на всякий случай)
-    }
-
-    const gray = new Float32Array(workW * workH);
-    for (let i = 0, p = 0; i < gray.length; i++, p += 4) {
-      gray[i] = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
-    }
-
-    // Порог по процентилю, а не по абсолютной яркости — работает что на
-    // солнечном, что на пасмурном фото: берём верхние ~15% самых светлых
-    // пикселей кадра.
-    const sorted = Float32Array.from(gray).sort();
-    const threshold = sorted[Math.floor(sorted.length * 0.85)];
-    const bright = new Uint8Array(workW * workH);
-    for (let i = 0; i < gray.length; i++) bright[i] = gray[i] >= threshold ? 1 : 0;
-
-    // Связные компоненты (BFS) на маске "ярких" пикселей — типизированные
-    // массивы вместо рекурсии/массива объектов ради скорости на телефоне.
-    const labels = new Int32Array(workW * workH).fill(-1);
-    const qx = new Int32Array(workW * workH);
-    const qy = new Int32Array(workW * workH);
-    const components = [];
-    for (let sy = 0; sy < workH; sy++) {
-      for (let sx = 0; sx < workW; sx++) {
-        const startIdx = sy * workW + sx;
-        if (!bright[startIdx] || labels[startIdx] !== -1) continue;
-        let qHead = 0;
-        let qTail = 0;
-        qx[qTail] = sx; qy[qTail] = sy; qTail++;
-        labels[startIdx] = components.length;
-        let minX = sx, maxX = sx, minY = sy, maxY = sy, count = 0;
-        while (qHead < qTail) {
-          const cx = qx[qHead];
-          const cy = qy[qHead];
-          qHead++;
-          count++;
-          if (cx < minX) minX = cx; if (cx > maxX) maxX = cx;
-          if (cy < minY) minY = cy; if (cy > maxY) maxY = cy;
-          const neighbors = [[cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]];
-          for (const [nx, ny] of neighbors) {
-            if (nx < 0 || ny < 0 || nx >= workW || ny >= workH) continue;
-            const ni = ny * workW + nx;
-            if (bright[ni] && labels[ni] === -1) {
-              labels[ni] = components.length;
-              qx[qTail] = nx; qy[qTail] = ny; qTail++;
-            }
-          }
-        }
-        components.push({ minX, maxX, minY, maxY, count });
-      }
-    }
-
-    const PLATE_RATIO = 520 / 112; // ГОСТ Р 50577 — стандартный автомобильный номер РФ
-    let best = null;
-    for (const c of components) {
-      const w = c.maxX - c.minX + 1;
-      const h = c.maxY - c.minY + 1;
-      if (w < 10 || h < 3) continue;
-      const bboxArea = w * h;
-      const fillRatio = c.count / bboxArea; // сплошной прямоугольник ближе к 1, рыхлое пятно — ниже
-      const ratioError = Math.abs(Math.log(w / h / PLATE_RATIO)); // 0 = точное совпадение пропорций
-      if (ratioError > 0.9 || fillRatio < 0.5) continue;
-      const centerY = (c.minY + c.maxY) / 2;
-      const posScore = centerY > workH * 0.25 ? 1 : 0.3; // штраф за верхнюю четверть кадра (небо, крыша)
-      const sizeScore = w > workW * 0.12 && w < workW * 0.6 ? 1 : 0.4;
-      const score = fillRatio * 0.35 + Math.max(0, 1 - ratioError) * 0.4 + posScore * 0.15 + sizeScore * 0.1;
-      if (!best || score > best.score) best = { score, minX: c.minX, minY: c.minY, w, h };
-    }
-
-    const CONFIDENCE_THRESHOLD = 0.5;
-    if (!best || best.score < CONFIDENCE_THRESHOLD) return null;
-    // Небольшой запас по краям — лучше слегка захватить фон вокруг, чем
-    // обрезать край номера.
-    const padX = best.w * 0.10;
-    const padY = best.h * 0.15;
-    const x = Math.max(0, best.minX - padX);
-    const y = Math.max(0, best.minY - padY);
-    const w = Math.min(workW - x, best.w + padX * 2);
-    const h = Math.min(workH - y, best.h + padY * 2);
-    return { xPct: x / workW, yPct: y / workH, wPct: w / workW, hPct: h / workH };
-  }
-
   function openPlateCoverEditor(file) {
     return new Promise((resolve) => {
       const objectUrl = URL.createObjectURL(file);
@@ -349,7 +233,6 @@
           content.innerHTML = `
             <h3 style="margin:6px 0;">Закройте номер на фото</h3>
             <p class="comment">Если на фото виден госномер — передвиньте, растяните и при необходимости разверните жёлтую рамку (кружок сверху) так, чтобы она полностью его закрывала, и нажмите «Замазать номер». Если номера не видно (фото сбоку/сзади без номера), нажмите «Без номера».</p>
-            <p class="comment plate-editor-autohint" style="color:var(--success);" hidden>✅ Рамку подобрали автоматически — проверьте, что номер закрыт полностью, при необходимости поправьте вручную.</p>
             <div class="plate-editor-wrap"><canvas class="plate-editor-canvas"></canvas><div class="plate-editor-box"><div class="plate-editor-rotate"></div><div class="plate-editor-resize"></div></div></div>
             <div style="display:flex; gap:8px; margin-top:12px;">
               <button type="button" class="btn secondary" id="plateSkipBtn">Без номера</button>
@@ -369,22 +252,13 @@
           wrap.style.height = `${displayH}px`;
           ctx.drawImage(img, 0, 0);
 
-          // Пытаемся сами найти номер на фото (см. detectPlateRect) — если
-          // не уверены, откатываемся на прежний фиксированный вариант:
-          // нижняя центральная зона кадра, где чаще всего оказывается
-          // передний номер на фото машины анфас.
+          // Рамка по умолчанию — нижняя центральная зона кадра, где чаще
+          // всего оказывается передний номер на фото машины анфас.
           // rotationDeg — угол разворота рамки: если машина сфотографирована
           // не строго анфас, а под углом (3/4 ракурс), номер на фото тоже
           // идёт под углом, и прямоугольник без разворота не может его
           // закрыть целиком без лишнего захвата фона.
-          const detected = detectPlateRect(canvas);
-          const rect = detected
-            ? { ...detected, rotationDeg: 0 }
-            : { xPct: 0.30, yPct: 0.70, wPct: 0.40, hPct: 0.14, rotationDeg: 0 };
-          if (detected) {
-            const hint = content.querySelector('.plate-editor-autohint');
-            if (hint) hint.hidden = false;
-          }
+          const rect = { xPct: 0.30, yPct: 0.70, wPct: 0.40, hPct: 0.14, rotationDeg: 0 };
           function renderBox() {
             box.style.left = `${rect.xPct * 100}%`;
             box.style.top = `${rect.yPct * 100}%`;
