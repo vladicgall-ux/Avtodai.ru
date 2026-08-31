@@ -206,7 +206,7 @@ button, .dir-btn, .tab-btn, a.btn {
 .card {
   background: var(--secondary-bg);
   border-radius: 14px;
-  padding: 14px;
+  padding: 12px;
   box-shadow: var(--card-shadow);
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
@@ -226,7 +226,7 @@ button, .dir-btn, .tab-btn, a.btn {
 .car-card--cancelled { border-left-color: var(--danger); }
 .car-card--completed { border-left-color: var(--accent-bright); }
 .car-card .route {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
 }
 .car-card .meta {
@@ -241,7 +241,7 @@ button, .dir-btn, .tab-btn, a.btn {
   color: var(--hint);
 }
 .car-card .price {
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--success);
   letter-spacing: -0.01em;
@@ -288,7 +288,7 @@ button, .dir-btn, .tab-btn, a.btn {
   flex: 0 0 auto;
   width: 74%;
   max-width: 260px;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
   border-radius: 12px;
   object-fit: cover;
   scroll-snap-align: start;
