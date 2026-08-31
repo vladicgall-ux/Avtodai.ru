@@ -2,7 +2,12 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- maximum-scale=1, user-scalable=no — без этого случайный pinch-zoom
+       или двойной тап растягивают вёрстку мини-приложения на весь экран
+       (поля фильтров и текст становятся огромными, часть уезжает за край) -
+       это не баг конкретного элемента, а зум всей страницы, который здесь
+       не нужен вообще. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>АвтоДай.рф — Аренда авто от частных лиц по всей России</title>
   <!-- Раньше здесь была ссылка на старый круглый emblem.svg — большинство
        браузеров предпочитают SVG-иконку, даже если PNG объявлена рядом,
