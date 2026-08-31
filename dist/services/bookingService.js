@@ -146,7 +146,7 @@ function listBookingsByRenter(renterId, range) {
        JOIN car_listings c ON c.id = b.listing_id
        JOIN users own ON own.telegram_id = c.owner_id
        WHERE ${clauses.join(' AND ')}
-       ORDER BY b.updated_at DESC`)
+       ORDER BY (CASE WHEN b.status IN ('pending','confirmed') THEN 0 ELSE 1 END), b.updated_at DESC`)
         .all(params);
 }
 function listBookingsByOwner(ownerId, range) {
@@ -164,7 +164,7 @@ function listBookingsByOwner(ownerId, range) {
        JOIN car_listings c ON c.id = b.listing_id
        JOIN users rnt ON rnt.telegram_id = b.renter_id
        WHERE ${clauses.join(' AND ')}
-       ORDER BY b.updated_at DESC`)
+       ORDER BY (CASE WHEN b.status IN ('pending','confirmed') THEN 0 ELSE 1 END), b.updated_at DESC`)
         .all(params);
 }
 function listAllBookings() {
