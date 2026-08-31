@@ -978,13 +978,22 @@ input[type="date"], input[type="datetime-local"] {
      flex-элемента, и колонки с датами перестают совпадать по ширине с
      остальными строками фильтра. */
   min-width: 0;
+  /* Полный сброс нативного вида поля — в WebView Telegram/MAX одного
+     display:none на ::-webkit-calendar-picker-indicator оказалось мало,
+     под иконку всё равно оставалась зарезервированная полоска места
+     (видна как вертикальная линия). appearance:none убирает всю нативную
+     "хромированную" отрисовку разом; тап по полю по-прежнему открывает
+     системный выбор даты. */
+  -webkit-appearance: none;
+  appearance: none;
 }
-/* Нативная иконка календаря при сжатии поля (см. overflow:hidden выше)
-   обрезалась почти целиком, оставляя только вертикальную полоску от своей
-   рамки — визуально похоже на случайный дефект. Тап по любому месту поля
-   и так открывает выбор даты, иконка не нужна. */
+/* Подстраховка на случай, если appearance:none не уберёт иконку полностью
+   в каком-то движке. */
 .date-field input[type="date"]::-webkit-calendar-picker-indicator {
   display: none;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 .date-field .date-field-label {
   position: absolute;
