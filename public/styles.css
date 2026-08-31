@@ -979,6 +979,13 @@ input[type="date"], input[type="datetime-local"] {
      остальными строками фильтра. */
   min-width: 0;
 }
+/* Нативная иконка календаря при сжатии поля (см. overflow:hidden выше)
+   обрезалась почти целиком, оставляя только вертикальную полоску от своей
+   рамки — визуально похоже на случайный дефект. Тап по любому месту поля
+   и так открывает выбор даты, иконка не нужна. */
+.date-field input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+}
 .date-field .date-field-label {
   position: absolute;
   inset: 1px;
