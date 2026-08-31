@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '30';
+  const APP_VERSION = '31';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -313,7 +313,7 @@
                 0.92
               );
             };
-            plateImg.src = 'assets/plate-watermark.svg';
+            plateImg.src = 'assets/plate-watermark.svg?v=' + APP_VERSION;
           });
         }, { wide: true, onClose: () => finish(null) });
       };
