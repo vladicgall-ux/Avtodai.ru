@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '33';
+  const APP_VERSION = '34';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -206,7 +206,7 @@
   /**
    * Перед загрузкой фото автомобиля даёт владельцу закрыть госномер рамкой,
    * которая при подтверждении впечатывается в фото логотипом «АвтоДай.РФ»
-   * (см. public/assets/plate-watermark.svg) — автоматическое распознавание
+   * (см. public/assets/plate-watermark.png) — автоматическое распознавание
    * номера потребовало бы тяжёлой ML-модели, а рамка, которую подгоняет сам
    * владелец, работает при любом ракурсе (спереди/сбоку) без этого. Если на
    * фото номера не видно (например, чистый вид сбоку без номерного знака),
@@ -313,7 +313,7 @@
                 0.92
               );
             };
-            plateImg.src = 'assets/plate-watermark.svg?v=' + APP_VERSION;
+            plateImg.src = 'assets/plate-watermark.png?v=' + APP_VERSION;
           });
         }, { wide: true, onClose: () => finish(null) });
       };
