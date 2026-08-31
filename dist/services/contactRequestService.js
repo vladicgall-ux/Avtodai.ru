@@ -96,7 +96,7 @@ function listContactRequestsByRenter(renterId) {
        JOIN car_listings c ON c.id = cr.listing_id
        JOIN users own ON own.telegram_id = c.owner_id
        WHERE cr.renter_id = ?
-       ORDER BY cr.created_at DESC`)
+       ORDER BY COALESCE(cr.confirmed_at, cr.created_at) DESC`)
         .all(renterId);
 }
 function listContactRequestsByOwner(ownerId) {
@@ -107,6 +107,6 @@ function listContactRequestsByOwner(ownerId) {
        JOIN car_listings c ON c.id = cr.listing_id
        JOIN users rnt ON rnt.telegram_id = cr.renter_id
        WHERE c.owner_id = ?
-       ORDER BY cr.created_at DESC`)
+       ORDER BY COALESCE(cr.confirmed_at, cr.created_at) DESC`)
         .all(ownerId);
 }

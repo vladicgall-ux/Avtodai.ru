@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '35';
+  const APP_VERSION = '36';
 
   // ---------- Escaping helper (defense in depth against stored XSS) ----------
   function escapeHtml(str) {
@@ -925,6 +925,15 @@
   });
 
   document.body.addEventListener('click', (e) => {
+    const sectionToggle = e.target.closest('.section-toggle');
+    if (sectionToggle) {
+      const target = document.getElementById(sectionToggle.dataset.toggle);
+      if (target) {
+        target.hidden = !target.hidden;
+        sectionToggle.setAttribute('aria-expanded', String(!target.hidden));
+      }
+      return;
+    }
     const photo = e.target.closest('.car-photo');
     if (photo && !photo.classList.contains('no-photo')) {
       openLightbox(photo.getAttribute('src'));
@@ -1706,6 +1715,7 @@
         const { requests } = await apiFetch('/contact-requests/mine');
         contactsEmpty.hidden = requests.length > 0;
         contactsList.innerHTML = requests.map(renterContactCardHtml).join('');
+        document.getElementById('renterContactsCount').textContent = String(requests.length);
       } catch (err) {
         contactsList.innerHTML = '';
       }
@@ -1718,6 +1728,7 @@
         const { bookings } = await apiFetch('/bookings/mine');
         empty.hidden = bookings.length > 0;
         list.innerHTML = bookings.map(renterBookingCardHtml).join('');
+        document.getElementById('renterBookingsCount').textContent = String(bookings.length);
       } catch (err) {
         list.innerHTML = '';
         toast(err.message);
@@ -1731,6 +1742,7 @@
         const { requests } = await apiFetch('/contact-requests/owner');
         contactsEmpty.hidden = requests.length > 0;
         contactsList.innerHTML = requests.map(ownerContactCardHtml).join('');
+        document.getElementById('ownerContactsCount').textContent = String(requests.length);
       } catch (err) {
         contactsList.innerHTML = '';
       }
@@ -1743,6 +1755,7 @@
         const { bookings } = await apiFetch('/bookings/owner');
         empty.hidden = bookings.length > 0;
         list.innerHTML = bookings.map(ownerBookingCardHtml).join('');
+        document.getElementById('ownerBookingsCount').textContent = String(bookings.length);
         const confirmedCount = bookings.filter((b) => b.status === 'confirmed' || b.status === 'completed').length;
         document.getElementById('ownerStats').innerHTML = `
           <div class="stat-tile"><div class="value">${bookings.length}</div><div class="label">Всего броней</div></div>

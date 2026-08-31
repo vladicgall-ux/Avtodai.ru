@@ -128,7 +128,7 @@ export function listContactRequestsByRenter(renterId: number): ContactRequestWit
        JOIN car_listings c ON c.id = cr.listing_id
        JOIN users own ON own.telegram_id = c.owner_id
        WHERE cr.renter_id = ?
-       ORDER BY cr.created_at DESC`
+       ORDER BY COALESCE(cr.confirmed_at, cr.created_at) DESC`
     )
     .all(renterId) as ContactRequestWithPeople[];
 }
@@ -142,7 +142,7 @@ export function listContactRequestsByOwner(ownerId: number): ContactRequestWithP
        JOIN car_listings c ON c.id = cr.listing_id
        JOIN users rnt ON rnt.telegram_id = cr.renter_id
        WHERE c.owner_id = ?
-       ORDER BY cr.created_at DESC`
+       ORDER BY COALESCE(cr.confirmed_at, cr.created_at) DESC`
     )
     .all(ownerId) as ContactRequestWithPeople[];
 }

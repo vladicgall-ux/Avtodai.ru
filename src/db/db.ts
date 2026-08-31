@@ -18,3 +18,15 @@ db.pragma('busy_timeout = 5000');
 
 const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
 db.exec(schema);
+
+// Лёгкая ручная миграция: CREATE TABLE IF NOT EXISTS выше не добавляет
+// колонки в уже существующую (созданную более старой версией схемы) таблицу
+// на проде, поэтому недостающие колонки добираем здесь.
+const bookingsColumns = db.prepare(`PRAGMA table_info(bookings)`).all() as { name: string }[];
+if (!bookingsColumns.some((c) => c.name === 'updated_at')) {
+  // ADD COLUMN не допускает недетерминированный DEFAULT вроде datetime('now'),
+  // поэтому колонку добавляем без него и сразу же заполняем задним числом —
+  // дальше её всегда проставляет явно код сервиса при каждом изменении брони.
+  db.exec(`ALTER TABLE bookings ADD COLUMN updated_at TEXT`);
+  db.exec(`UPDATE bookings SET updated_at = COALESCE(cancelled_at, created_at)`);
+}

@@ -17,6 +17,7 @@ export interface BookingRecord {
   cancellation_reason: string | null;
   cancelled_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export class BookingError extends Error {}
@@ -62,8 +63,8 @@ export const createBooking = db.transaction(
     const totalPrice = days * listing.price_per_day;
     const info = db
       .prepare(
-        `INSERT INTO bookings (listing_id, renter_id, date_from, date_to, total_price, deposit)
-         VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO bookings (listing_id, renter_id, date_from, date_to, total_price, deposit, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`
       )
       .run(input.listingId, input.renterId, input.dateFrom, input.dateTo, totalPrice, listing.deposit);
     return getBooking(Number(info.lastInsertRowid))!;
@@ -95,7 +96,7 @@ export const cancelBooking = db.transaction((bookingId: number, renterId: number
     throw new BookingError('Бронирование не найдено');
   }
   db.prepare(
-    `UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), cancellation_reason = ? WHERE id = ?`
+    `UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), updated_at = datetime('now'), cancellation_reason = ? WHERE id = ?`
   ).run(reason ?? null, bookingId);
   return { ...booking, status: 'cancelled' };
 });
@@ -115,7 +116,7 @@ export const cancelBookingByOwner = db.transaction((bookingId: number, ownerId: 
     throw new BookingError('Это не ваш автомобиль');
   }
   db.prepare(
-    `UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), cancellation_reason = ? WHERE id = ?`
+    `UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), updated_at = datetime('now'), cancellation_reason = ? WHERE id = ?`
   ).run(reason ?? null, bookingId);
   return { ...booking, status: 'cancelled' };
 });
@@ -130,7 +131,7 @@ export function confirmBooking(bookingId: number, ownerId: number): BookingRecor
   if (!listing || listing.owner_id !== ownerId) {
     throw new BookingError('Это не ваш автомобиль');
   }
-  db.prepare(`UPDATE bookings SET status = 'confirmed' WHERE id = ?`).run(bookingId);
+  db.prepare(`UPDATE bookings SET status = 'confirmed', updated_at = datetime('now') WHERE id = ?`).run(bookingId);
   return { ...booking, status: 'confirmed' };
 }
 
@@ -144,10 +145,9 @@ export function declineBooking(bookingId: number, ownerId: number, reason?: stri
   if (!listing || listing.owner_id !== ownerId) {
     throw new BookingError('Это не ваш автомобиль');
   }
-  db.prepare(`UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), cancellation_reason = ? WHERE id = ?`).run(
-    reason ?? null,
-    bookingId
-  );
+  db.prepare(
+    `UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), updated_at = datetime('now'), cancellation_reason = ? WHERE id = ?`
+  ).run(reason ?? null, bookingId);
   return { ...booking, status: 'cancelled' };
 }
 
@@ -202,7 +202,7 @@ export function listBookingsByRenter(renterId: number, range?: { from: string; t
        JOIN car_listings c ON c.id = b.listing_id
        JOIN users own ON own.telegram_id = c.owner_id
        WHERE ${clauses.join(' AND ')}
-       ORDER BY b.date_from DESC`
+       ORDER BY b.updated_at DESC`
     )
     .all(params) as BookingWithPeople[];
 }
@@ -223,7 +223,7 @@ export function listBookingsByOwner(ownerId: number, range?: { from: string; to:
        JOIN car_listings c ON c.id = b.listing_id
        JOIN users rnt ON rnt.telegram_id = b.renter_id
        WHERE ${clauses.join(' AND ')}
-       ORDER BY b.date_from DESC`
+       ORDER BY b.updated_at DESC`
     )
     .all(params) as BookingWithPeople[];
 }
@@ -251,11 +251,11 @@ export function listAllBookings(): BookingWithPeople[] {
 export const sweepExpiredBookings = db.transaction((): void => {
   const today = new Date().toISOString().slice(0, 10);
   db.prepare(
-    `UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now')
+    `UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), updated_at = datetime('now')
      WHERE status = 'pending' AND date_to < ?`
   ).run(today);
   db.prepare(
-    `UPDATE bookings SET status = 'completed'
+    `UPDATE bookings SET status = 'completed', updated_at = datetime('now')
      WHERE status = 'confirmed' AND date_to < ?`
   ).run(today);
 });

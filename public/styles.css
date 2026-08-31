@@ -468,6 +468,48 @@ input[type="date"], input[type="datetime-local"] {
 }
 .section-title:first-child { margin-top: 0; }
 
+.section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  background: var(--secondary-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.section-toggle:first-child { margin-top: 0; }
+.section-toggle-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.count-badge {
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent, #33472c);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+.section-toggle .chevron {
+  color: var(--hint);
+  transition: transform 0.15s ease;
+}
+.section-toggle[aria-expanded="true"] .chevron { transform: rotate(90deg); }
+.collapsible {
+  margin-top: 8px;
+}
+
 .empty {
   color: var(--hint);
   font-size: 14px;

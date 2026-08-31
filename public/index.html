@@ -288,12 +288,22 @@
       </div>
 
       <div id="bookingsRenterSection">
-        <div class="section-title">Запросы на контакты</div>
-        <div id="renterContactsList" class="cards"></div>
-        <p id="renterContactsEmpty" class="empty" hidden>Вы ещё не запрашивали контакты владельцев.</p>
-        <div class="section-title">Бронирования</div>
-        <div id="renterBookingsList" class="cards"></div>
-        <p id="renterBookingsEmpty" class="empty" hidden>У вас пока нет бронирований.</p>
+        <button type="button" class="section-toggle" data-toggle="renterContactsWrap">
+          <span>Запросы на контакты</span>
+          <span class="section-toggle-right"><span class="count-badge" id="renterContactsCount">0</span><span class="chevron">›</span></span>
+        </button>
+        <div id="renterContactsWrap" class="collapsible" hidden>
+          <div id="renterContactsList" class="cards"></div>
+          <p id="renterContactsEmpty" class="empty" hidden>Вы ещё не запрашивали контакты владельцев.</p>
+        </div>
+        <button type="button" class="section-toggle" data-toggle="renterBookingsWrap">
+          <span>Бронирования</span>
+          <span class="section-toggle-right"><span class="count-badge" id="renterBookingsCount">0</span><span class="chevron">›</span></span>
+        </button>
+        <div id="renterBookingsWrap" class="collapsible" hidden>
+          <div id="renterBookingsList" class="cards"></div>
+          <p id="renterBookingsEmpty" class="empty" hidden>У вас пока нет бронирований.</p>
+        </div>
       </div>
 
       <div id="bookingsOwnerSection" hidden>
@@ -315,12 +325,22 @@
           <div class="stats-row" id="earningsStatsRow"></div>
         </div>
         <div class="stats-row" id="ownerStats"></div>
-        <div class="section-title">Запросы на контакты</div>
-        <div id="ownerContactsList" class="cards"></div>
-        <p id="ownerContactsEmpty" class="empty" hidden>Пока никто не запрашивал ваши контакты.</p>
-        <div class="section-title">Бронирования</div>
-        <div id="ownerBookingsList" class="cards"></div>
-        <p id="ownerBookingsEmpty" class="empty" hidden>Пока нет бронирований на ваши объявления.</p>
+        <button type="button" class="section-toggle" data-toggle="ownerContactsWrap">
+          <span>Запросы на контакты</span>
+          <span class="section-toggle-right"><span class="count-badge" id="ownerContactsCount">0</span><span class="chevron">›</span></span>
+        </button>
+        <div id="ownerContactsWrap" class="collapsible" hidden>
+          <div id="ownerContactsList" class="cards"></div>
+          <p id="ownerContactsEmpty" class="empty" hidden>Пока никто не запрашивал ваши контакты.</p>
+        </div>
+        <button type="button" class="section-toggle" data-toggle="ownerBookingsWrap">
+          <span>Бронирования</span>
+          <span class="section-toggle-right"><span class="count-badge" id="ownerBookingsCount">0</span><span class="chevron">›</span></span>
+        </button>
+        <div id="ownerBookingsWrap" class="collapsible" hidden>
+          <div id="ownerBookingsList" class="cards"></div>
+          <p id="ownerBookingsEmpty" class="empty" hidden>Пока нет бронирований на ваши объявления.</p>
+        </div>
       </div>
     </section>
 
@@ -406,6 +426,6 @@
     </button>
   </nav>
 
-  <script src="app.js?v=35" defer></script>
+  <script src="app.js?v=36" defer></script>
 </body>
 </html>

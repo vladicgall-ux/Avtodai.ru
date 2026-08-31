@@ -49,8 +49,8 @@ exports.createBooking = db_1.db.transaction((input) => {
     }
     const totalPrice = days * listing.price_per_day;
     const info = db_1.db
-        .prepare(`INSERT INTO bookings (listing_id, renter_id, date_from, date_to, total_price, deposit)
-         VALUES (?, ?, ?, ?, ?, ?)`)
+        .prepare(`INSERT INTO bookings (listing_id, renter_id, date_from, date_to, total_price, deposit, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`)
         .run(input.listingId, input.renterId, input.dateFrom, input.dateTo, totalPrice, listing.deposit);
     return getBooking(Number(info.lastInsertRowid));
 });
@@ -72,7 +72,7 @@ exports.cancelBooking = db_1.db.transaction((bookingId, renterId, reason) => {
     if (!booking || (booking.status !== 'confirmed' && booking.status !== 'pending')) {
         throw new BookingError('Бронирование не найдено');
     }
-    db_1.db.prepare(`UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), cancellation_reason = ? WHERE id = ?`).run(reason ?? null, bookingId);
+    db_1.db.prepare(`UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), updated_at = datetime('now'), cancellation_reason = ? WHERE id = ?`).run(reason ?? null, bookingId);
     return { ...booking, status: 'cancelled' };
 });
 /**
@@ -89,7 +89,7 @@ exports.cancelBookingByOwner = db_1.db.transaction((bookingId, ownerId, reason) 
     if (!listing || listing.owner_id !== ownerId) {
         throw new BookingError('Это не ваш автомобиль');
     }
-    db_1.db.prepare(`UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), cancellation_reason = ? WHERE id = ?`).run(reason ?? null, bookingId);
+    db_1.db.prepare(`UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), updated_at = datetime('now'), cancellation_reason = ? WHERE id = ?`).run(reason ?? null, bookingId);
     return { ...booking, status: 'cancelled' };
 });
 /** Владелец подтверждает бронь — только для своих объявлений и только из статуса 'pending'. */
@@ -102,7 +102,7 @@ function confirmBooking(bookingId, ownerId) {
     if (!listing || listing.owner_id !== ownerId) {
         throw new BookingError('Это не ваш автомобиль');
     }
-    db_1.db.prepare(`UPDATE bookings SET status = 'confirmed' WHERE id = ?`).run(bookingId);
+    db_1.db.prepare(`UPDATE bookings SET status = 'confirmed', updated_at = datetime('now') WHERE id = ?`).run(bookingId);
     return { ...booking, status: 'confirmed' };
 }
 /** Владелец отклоняет бронь. */
@@ -115,7 +115,7 @@ function declineBooking(bookingId, ownerId, reason) {
     if (!listing || listing.owner_id !== ownerId) {
         throw new BookingError('Это не ваш автомобиль');
     }
-    db_1.db.prepare(`UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), cancellation_reason = ? WHERE id = ?`).run(reason ?? null, bookingId);
+    db_1.db.prepare(`UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), updated_at = datetime('now'), cancellation_reason = ? WHERE id = ?`).run(reason ?? null, bookingId);
     return { ...booking, status: 'cancelled' };
 }
 /** Полный контекст брони (объявление + арендатор + владелец) для сообщений бота и договора. */
@@ -146,7 +146,7 @@ function listBookingsByRenter(renterId, range) {
        JOIN car_listings c ON c.id = b.listing_id
        JOIN users own ON own.telegram_id = c.owner_id
        WHERE ${clauses.join(' AND ')}
-       ORDER BY b.date_from DESC`)
+       ORDER BY b.updated_at DESC`)
         .all(params);
 }
 function listBookingsByOwner(ownerId, range) {
@@ -164,7 +164,7 @@ function listBookingsByOwner(ownerId, range) {
        JOIN car_listings c ON c.id = b.listing_id
        JOIN users rnt ON rnt.telegram_id = b.renter_id
        WHERE ${clauses.join(' AND ')}
-       ORDER BY b.date_from DESC`)
+       ORDER BY b.updated_at DESC`)
         .all(params);
 }
 function listAllBookings() {
@@ -186,8 +186,8 @@ function listAllBookings() {
  */
 exports.sweepExpiredBookings = db_1.db.transaction(() => {
     const today = new Date().toISOString().slice(0, 10);
-    db_1.db.prepare(`UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now')
+    db_1.db.prepare(`UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now'), updated_at = datetime('now')
      WHERE status = 'pending' AND date_to < ?`).run(today);
-    db_1.db.prepare(`UPDATE bookings SET status = 'completed'
+    db_1.db.prepare(`UPDATE bookings SET status = 'completed', updated_at = datetime('now')
      WHERE status = 'confirmed' AND date_to < ?`).run(today);
 });
