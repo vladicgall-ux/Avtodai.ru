@@ -290,7 +290,11 @@ button, .dir-btn, .tab-btn, a.btn {
   max-width: 260px;
   aspect-ratio: 16 / 9;
   border-radius: 12px;
-  object-fit: cover;
+  /* contain, не cover — машина на фото обрезалась сверху/снизу (крыша,
+     колёса), потому что реальные фото телефоном редко ровно 16:9. Полосы
+     по бокам/сверху-снизу — приемлемая цена за то, что весь автомобиль
+     виден целиком. */
+  object-fit: contain;
   scroll-snap-align: start;
   background: var(--bg);
   cursor: pointer;
@@ -955,8 +959,11 @@ input[type="date"], input[type="datetime-local"] {
   /* iOS Safari иногда не сжимает нативный контрол <input type="date"> до
      ширины flex-элемента и рисует его шире, чем позволяет колонка — из-за
      этого вторая колонка съезжала за край экрана. overflow:hidden обрезает
-     этот визуальный вылет вместо того, чтобы раздувать всю строку. */
+     этот визуальный вылет вместо того, чтобы раздувать всю строку.
+     border-radius — тот же, что у самого input ниже: без него обрезка идёт
+     по прямому углу и срезает скруглённый край поля. */
   overflow: hidden;
+  border-radius: 10px;
 }
 .date-field input[type="date"] {
   width: 100%;
